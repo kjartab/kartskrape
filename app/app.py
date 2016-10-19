@@ -16,8 +16,6 @@ url = {
     "selection" : {
         "fylker": "http://www.norgeskart.no/json/norge/fylker.json"
     }
-
-
 }
 
 config = {
@@ -45,12 +43,17 @@ def get_file(filename):
     return f.read()
 
 def login(payload):
-    r = requests.post(url['login'], data = payload)
-    print r
-    # print r.text
-    print r.cookies
-    for k in r.cookies:
-        print k
+    session = requests.Session()
+    session.cookies.get_dict()
+    r = session.post(url['login'], data = payload)
+    # print r
+    # # print r.text
+    # print r.cookies
+    # for k in r.cookies:
+    #     print k
+    print session.cookies.get_dict()
+    # for cookie in r.cookies:
+    #     print cookie.name, cookie.value, cookie.domain
 
     print r.headers
 def download_dataset(dataset):
@@ -58,6 +61,7 @@ def download_dataset(dataset):
     res = requests.get(url)
 
     print res.text
+
 fylke_selections = []
 fylker = get_selection('fylker')
 for f in fylker['features']:
@@ -72,15 +76,15 @@ for f in fylker['features']:
 
 name = "test"
 template = Template('Hello {{ name }}!').render({'name' : name})
-print template
+
 
 form_build_id = "test"
 form_token  = "testtoken"
 
-print fylke_selections
-print len(fylke_selections)
+# print fylke_selections
+# print len(fylke_selections)
 
-print Template(get_file("post_bestilling.j2")).render({
+Template(get_file("post_bestilling.j2")).render({
     'form_build_id' : form_build_id,
     'form_token' : form_token,
     'file_count' : len(fylke_selections),
@@ -90,8 +94,8 @@ print Template(get_file("post_bestilling.j2")).render({
 
 
 login_data = {
-    'name':'user',
-    'pass':'password',
+    'name':'Kjartanb',
+    'pass':'kjartan1',
     'form_build_id':'form-wf8e6XRKhmS2phKZLmcMYFsEqdccR5P_E3ZbaTRxobA',
     'form_id':'user_login_block',
     'op':'Logg inn'
