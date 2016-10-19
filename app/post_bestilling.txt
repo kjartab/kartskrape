@@ -1,0 +1,34 @@
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="product_id"
+
+109057
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="form_build_id"
+
+form-ndNgdym8M4fTPn4nBYqx8uDGfPZVsHxszNgPW5qHs-Y
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="form_token"
+
+1vxX0-pTUfdYZdwgl5-CgRsqJCJke_YM1KDGxE2oCr4
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="form_id"
+
+commerce_cart_add_to_cart_form_109057
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="line_item_fields[field_selection][und][0][value]"
+
+
+["Adressedata_20_Finnmark_UTM33_CSV.zip"]
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="line_item_fields[field_selection_text][und][0][value]"
+
+1 filer
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="quantity"
+
+1
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="op"
+
+Legg i kurv
+------WebKitFormBoundaryUEaEigMCsDJdaUei--

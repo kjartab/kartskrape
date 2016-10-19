@@ -1,0 +1,13 @@
+<form class="commerce-add-to-cart commerce-cart-add-to-cart-form-109057" enctype="multipart/form-data" action="/download/content/offisielle-adresser-utm33-csv" method="post" id="commerce-cart-add-to-cart-form-109057" accept-charset="UTF-8"><div><input type="hidden" name="product_id" value="109057" />
+<input type="hidden" name="form_build_id" value="form-7tS1mleHFt84t6xT16q60hxYw3Pk1DJHNQRP47QMUUI" />
+<input type="hidden" name="form_id" value="commerce_cart_add_to_cart_form_109057" />
+<div id="edit-line-item-fields" class="form-wrapper"><div class="field-type-text field-name-field-selection field-widget-text-textfield form-wrapper" id="edit-line-item-fields-field-selection"><div id="line-item-fields-field-selection-add-more-wrapper"><div class="form-item form-type-textfield form-item-line-item-fields-field-selection-und-0-value">
+  <label for="edit-line-item-fields-field-selection-und-0-value">Selection </label>
+ <input class="text-full form-text" type="text" id="edit-line-item-fields-field-selection-und-0-value" name="line_item_fields[field_selection][und][0][value]" value="" size="60" maxlength="2550" />
+</div>
+</div></div><div class="field-type-text field-name-field-selection-text field-widget-text-textfield form-wrapper" id="edit-line-item-fields-field-selection-text"><div id="line-item-fields-field-selection-text-add-more-wrapper"><div class="form-item form-type-textfield form-item-line-item-fields-field-selection-text-und-0-value">
+  <label for="edit-line-item-fields-field-selection-text-und-0-value">Selection text </label>
+ <input class="text-full form-text" type="text" id="edit-line-item-fields-field-selection-text-und-0-value" name="line_item_fields[field_selection_text][und][0][value]" value="" size="60" maxlength="2550" />
+</div>
+</div></div></div><input type="hidden" name="quantity" value="1" />
+<input type="submit" id="edit-submit" name="op" value="Legg i kurv" class="form-submit" /></div></form></div></div></div>  </div>
