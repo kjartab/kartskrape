@@ -211,6 +211,7 @@ class BestillingForms(object):
             'form_token' : form_token
             }))
 
+datasets = Datasets("Kjartanb", "kjartan1")
 # datasets.send_bestilling('adresser')
 res = datasets.send_bestilling('adresser')
 print res
