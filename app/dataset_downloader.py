@@ -139,16 +139,15 @@ class Datasets(object):
 
 
     def checkout_bestilling(self, checkout_id):
-
         res = self.kapi.post("http://data.kartverket.no/download/checkout/"+checkout_id+"/checkout", data=payload)
         return res
 
     def setup_bestilling(self, url, form_build_id, form_token, product_id):
 
         fylke_files = self.selection.get_adresser_fylker()
-        
         form = self.bestilling_forms.get_form(form_build_id, form_token, product_id, fylke_files)
-        return self.kapi.post(url, form)
+        res = self.kapi.post(url, form)
+        return self.kapi.get(url)
 
     def confirm_bestilling(self, checkout_id, res):
         form_build_id = self.kapi.get_form_build_id(res)
@@ -166,16 +165,22 @@ class Datasets(object):
         form_id = self.kapi.get_form_id(res)
         product_id = self.kapi.get_form_product_id(res)
 
-        self.setup_bestilling(url, form_build_id, form_token, product_id)
+
+        res = self.setup_bestilling(url, form_build_id, form_token, product_id)
+
 
         res = self.kapi.get('http://data.kartverket.no/download/checkout')
-        
-        print res.text
+
         form_action = self.kapi.get_form_action_by_id(res, 'commerce-checkout-form-checkout')
+
+
         checkout_id = form_action.split('/')[-2]
 
-        res = self.checkout_bestilling(checkout_id)
-        self.confirm_bestilling(self, )
+        res = self.kapi.get('http://data.kartverket.no/download/checkout')
+        res = self.kapi.get('http://data.kartverket.no/download/checkout/' + checkout_id)
+        res = self.kapi.get('http://data.kartverket.no/download/checkout/' + checkout_id + '/checkout')
+
+        return self.confirm_bestilling(checkout_id, res)
 
 
 import json
@@ -199,20 +204,20 @@ class BestillingForms(object):
             'form_build_id' : form_build_id,
             'form_token' : form_token,
             'file_count' : len(files),
-            'product_id' : '109057',
+            'product_id' : product_id,
             'selections' : "\"" + "\", \"".join(files) + "\""
             })
 
         return form
 
     def get_confirm_form(self, form_build_id, form_token):
-        return Template(self.get_file("confirm_bestilling.j2").render({
+        form = Template(self.get_file("confirm_bestilling.j2")).render({
+        # form = Template(self.get_file("test_post_bestilling")).render({
             'form_build_id' : form_build_id,
             'form_token' : form_token
-            }))
+            })
+        return form
 
-datasets = Datasets("Kjartanb", "kjartan1")
-# datasets.send_bestilling('adresser')
 res = datasets.send_bestilling('adresser')
 print res
-print res.text 
+# print res.text 

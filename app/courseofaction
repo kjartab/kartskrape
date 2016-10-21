@@ -1,0 +1,65 @@
+
+
+1. get
+
+http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+
+
+2. post
+
+http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+
+
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="product_id"
+
+109057
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="form_build_id"
+
+form-54fPgv2wfzP4PC3WabuW2HjDFdjJiVChlzPM58khOvc
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="form_token"
+
+c9CppDC-eWl3owREokKmT_PlX8uuKbBfd_SpOy9x3iY
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="form_id"
+
+commerce_cart_add_to_cart_form_109057
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="line_item_fields[field_selection][und][0][value]"
+
+["Adressedata_19_Troms_UTM33_CSV.zip"]
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="line_item_fields[field_selection_text][und][0][value]"
+
+1 filer
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="quantity"
+
+1
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2
+Content-Disposition: form-data; name="op"
+
+Legg i kurv
+------WebKitFormBoundaryCnQE7sZO6LBOzdY2--
+
+3. get
+http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+4. get
+http://data.kartverket.no/download/checkout
+
+location: http://data.kartverket.no/download/checkout/143799
+
+
+5. get
+http://data.kartverket.no/download/checkout/143799
+
+
+
+6. get
+http://data.kartverket.no/download/checkout/143799/checkout
+

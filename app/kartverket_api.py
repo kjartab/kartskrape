@@ -37,7 +37,7 @@ class KartverketApi(object):
         return self.get_input_val(response, 'form_id')
 
     def get_form_product_id(self, response):
-        return self.get_input_val(response, 'form_product_id')
+        return self.get_input_val(response, 'product_id')
 
     def get_form_token(self, response):
         return self.get_input_val(response, 'form_token')
@@ -54,8 +54,7 @@ class KartverketApi(object):
         print response
 
     def login(self):
-        response = self.get_login_page()
-        print response
+        response = self.get_login_page()        
         form_build_id = self.get_form_build_id(response)
         if form_build_id:
             payload = self.get_login_payload(self.username, self.password, form_build_id)

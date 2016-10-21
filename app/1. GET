@@ -1,0 +1,117 @@
+1. GET
+
+http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+
+2. 
+
+CLICK geojson => lists files 
+
+
+3. 
+CLICK legg i kurv
+
+POST REQUEST
+http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+
+
+
+Request Payload
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="product_id"
+
+109057
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="form_build_id"
+
+form-2qPLa9JXTFypLq6NfEwl5K2Nl1cf_fJAg-Zoa4w30IY
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="form_token"
+
+c9CppDC-eWl3owREokKmT_PlX8uuKbBfd_SpOy9x3iY
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="form_id"
+
+commerce_cart_add_to_cart_form_109057
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="line_item_fields[field_selection][und][0][value]"
+
+["Adressedata_5_Oppland_UTM33_CSV.zip","Adressedata_15_More_og_Romsdal_UTM33_CSV.zip"]
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="line_item_fields[field_selection_text][und][0][value]"
+
+2 filer
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="quantity"
+
+1
+------WebKitFormBoundary0LHLJBm46VpBb8an
+Content-Disposition: form-data; name="op"
+
+Legg i kurv
+------WebKitFormBoundary0LHLJBm46VpBb8an--
+
+
+
+Returns 302
+ Location: http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+
+4. get
+
+http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv
+
+
+
+5. BESTILL
+
+GET
+http://data.kartverket.no/download/checkout
+
+
+returns
+302
+Location http://data.kartverket.no/download/checkout/143799
+
+
+
+6.
+
+GET 
+Location: http://data.kartverket.no/download/checkout/143799
+
+
+returns
+302
+
+Location: http://data.kartverket.no/download/checkout/143799/checkout
+
+
+
+
+7. 
+GET
+http://data.kartverket.no/download/checkout/143799/checkout
+
+returns 200
+
+
+
+8
+POST http://data.kartverket.no/download/checkout/143799/checkout
+
+op:Fortsett
+form_build_id:form-cecU725yx8PfLLWA5t1V6jCWbfLz13y2CNYF9r3bRPo
+form_token:ErrinLgwCOFvu3JmucEEoj6zpsq2WOA7bbIKxeAjp4g
+form_id:commerce_checkout_form_checkout
+
+
+returns 302
+Location http://data.kartverket.no/download/checkout/143799/complete
+
+
+9. 
+GET http://data.kartverket.no/download/checkout/143799/complete
+
+
