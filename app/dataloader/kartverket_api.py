@@ -43,12 +43,17 @@ class KartverketApi(object):
         return self.get_input_val(response, 'form_token')
 
     def get_form_action_by_id(self, response, idsel):  
-        # print response.text       
+        # print response.text
+        self.log_html(response, "formdata")
         soup = BeautifulSoup(response.text, 'html.parser')
         try:
             return soup.find('form').get('action')
         except:
             return None
+
+    def log_html(self, res, view):
+        f = open('views/' + view + '.html', 'w')
+        f.write(res.text.encode('utf8'))
 
     def verify_login_response(self, response):
         print response
@@ -60,17 +65,45 @@ class KartverketApi(object):
             payload = self.get_login_payload(self.username, self.password, form_build_id)
             session = self.create_session()
             res = session.post(self.url['authenticate'], data = payload)
-            self.verify_login_response(res)
-            self.cookies = res.cookies.get_dict()
+            self.log_html(res, "login")
+
+            self.cookies = session.cookies
+
             self.session = session
         else:
             raise Exception("no form build id found")
 
-    def get(self, url):
-        return self.session.get(url)
+    def get(self, url, headers=None):
+        # if headers:
+        #     self.session.headers.update(headers) 
+        # res = self.session.get(url)
 
-    def post(self, url, payload):
-        return self.session.post(url, data=payload)
+        if headers:
+            return self.session.post(url, headers=headers)
+
+        return self.session.post(url)
+        # return res
+
+
+    def get_auth_cookie(self):
+        res = self.session.cookies.get_dict()
+        cookie_str = ""
+        for k in res:
+            cookie_str = k + "=" + res[k]
+        return cookie_str
+
+    def post(self, url, payload, headers=None):
+
+        if not headers:
+            headers = {            
+            'Cookie' : self.get_auth_cookie()
+            }
+        else:
+            headers['Cookie'] = self.get_auth_cookie()
+
+        return self.session.post(url, data=payload, headers=headers)
+
+
 
 
     def download_file(self, data_dir, url):

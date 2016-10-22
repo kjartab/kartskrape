@@ -1,0 +1,33 @@
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="product_id"
+
+109057
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="form_build_id"
+
+form-yPTE9ZefIdFJGSjaY-IFAQVre3WzmDggghJ9sfaUdtk
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="form_token"
+
+NKzfG0ZbpXbDwI4lmv9P_NuZ6gTQBBTbTBkJDcIo6zo
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="form_id"
+
+commerce_cart_add_to_cart_form_109057
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="line_item_fields[field_selection][und][0][value]"
+
+["Adressedata_18_Nordland_UTM33_CSV.zip", "Adressedata_20_Finnmark_UTM33_CSV.zip", "Adressedata_19_Troms_UTM33_CSV.zip", "Adressedata_17_Nord-Trondelag_UTM33_CSV.zip", "Adressedata_16_Sor-Trondelag_UTM33_CSV.zip", "Adressedata_4_Hedmark_UTM33_CSV.zip", "Adressedata_14_Sogn_og_Fjordane_UTM33_CSV.zip", "Adressedata_15_More_og_Romsdal_UTM33_CSV.zip", "Adressedata_5_Oppland_UTM33_CSV.zip", "Adressedata_12_Hordaland_UTM33_CSV.zip", "Adressedata_11_Rogaland_UTM33_CSV.zip", "Adressedata_8_Telemark_UTM33_CSV.zip", "Adressedata_6_Buskerud_UTM33_CSV.zip", "Adressedata_9_Aust-Agder_UTM33_CSV.zip", "Adressedata_10_Vest-Agder_UTM33_CSV.zip", "Adressedata_2_Akershus_UTM33_CSV.zip", "Adressedata_1_Ostfold_UTM33_CSV.zip", "Adressedata_7_Vestfold_UTM33_CSV.zip", "Adressedata_3_Oslo_UTM33_CSV.zip", "Adressedata_16_Sor-Trondelag_UTM33_CSV.zip"]
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="line_item_fields[field_selection_text][und][0][value]"
+
+20 filer
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="quantity"
+
+1
+------WebKitFormBoundaryUEaEigMCsDJdaUei
+Content-Disposition: form-data; name="op"
+
+Legg i kurv
+------WebKitFormBoundaryUEaEigMCsDJdaUei--
