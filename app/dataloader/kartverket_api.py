@@ -78,8 +78,12 @@ class KartverketApi(object):
         #     self.session.headers.update(headers) 
         # res = self.session.get(url)
 
-        if headers:
-            return self.session.post(url, headers=headers)
+        if not headers:
+            headers = {            
+                'Cookie' : self.get_auth_cookie()
+            }
+        else:
+            headers['Cookie'] = self.get_auth_cookie()
 
         return self.session.post(url)
         # return res
@@ -90,13 +94,14 @@ class KartverketApi(object):
         cookie_str = ""
         for k in res:
             cookie_str = k + "=" + res[k]
+            print cookie_str
         return cookie_str
 
     def post(self, url, payload, headers=None):
 
         if not headers:
             headers = {            
-            'Cookie' : self.get_auth_cookie()
+                'Cookie' : self.get_auth_cookie()
             }
         else:
             headers['Cookie'] = self.get_auth_cookie()
