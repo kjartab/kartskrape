@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from kartverket_config import config
 
-class KartverketApi(object):
+class KartverketApiHelper(object):
 
     def __init__(self, username, password):
         

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 dataset_config = {
     'stedsnavn' : {
         'selection' : 'hele_landet',
@@ -66,4 +64,9 @@ dataset_config = {
         'selection' : None,
         'url' : 'http://data.kartverket.no/data/kartdata/n50/landsdekkende/Kartdata_Norge_UTM33_N50_PostGIS.zip'
     }
+}
+
+
+_selections: {
+
 }
