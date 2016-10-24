@@ -11,7 +11,7 @@ dataset_config = {
     },
     'vbase' : {
         'selection' : 'fylke',
-        'ur' : 'http://data.kartverket.no/download/content/vbase-utm-33-fylkesinndeling'
+        'url' : 'http://data.kartverket.no/download/content/vbase-utm-33-fylkesinndeling'
     },
     'sjo_dybdekurver' : {
         'selection' : 'hele_landet',

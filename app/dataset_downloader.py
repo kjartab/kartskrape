@@ -3,37 +3,29 @@
 
 import os
 import requests
+from selection import Selection
 from kartverket_api import KartverketApi
+from forms import KartverketForm
 from dataset_config import dataset_config
+
+
+
 class Datasets(object):
 
     def __init__(self, username, password):
+        
         self.kapi = KartverketApi(username, password)
-        self.selection = Selection()
-        self.bestilling_forms = BestillingForms()
         self.kapi.login()
+
+        self.selection = Selection()
+        self.forms = KartverketForm()
+        
         self.data_dir = self.setup_data_dir('datatest')
 
     def setup_data_dir(self, data_dir):
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
         return data_dir
-
-    def download(self, data_selection):
-        self.kapi.download_file(self.data_dir, '')
-
-
-    def checkout_bestilling(self, checkout_id):
-        res = self.kapi.post("http://data.kartverket.no/download/checkout/"+checkout_id+"/checkout", data=payload)
-        return res
-
-    def setup_bestilling(self, url, form_build_id, form_token, product_id):
-
-        fylke_files = self.selection.get_adresser_fylker()
-        form = self.bestilling_forms.get_form(form_build_id, form_token, product_id, fylke_files)
-        res = self.kapi.post(url, form)
-        
-        return self.kapi.get(url)
 
     def confirm_bestilling(self, checkout_id, res):
         form_build_id = self.kapi.get_form_build_id(res)
@@ -42,36 +34,125 @@ class Datasets(object):
         return self.kapi.post("http://data.kartverket.no/download/checkout/"+checkout_id+"/checkout", form)
 
 
-    def send_bestilling(self, dataset):
+    def get_bestilling_page(self, dataset):
         url = dataset_config[dataset]['url']
         res = self.kapi.get(url)
+        return res
 
+
+    def post_bestilling_page(self, dataset, res):
+
+        url = "http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv"
+        # url = dataset_config[dataset]['url']
+        res = self.kapi.get(url)
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
         form_id = self.kapi.get_form_id(res)
         product_id = self.kapi.get_form_product_id(res)
 
 
-        res = self.setup_bestilling(url, form_build_id, form_token, product_id)
-        res = self.kapi.get('http://data.kartverket.no/download/checkout')
+        selections = self.selection.get_adresser_fylker()
+        boundary = "----FormBoundaryDXcsEa32cZCoJVSY"
 
-        form_action = self.kapi.get_form_action_by_id(res, 'commerce-checkout-form-checkout')
+        sel_string = "\"" + "\", \"".join(selections) + "\""
+        # formdata = self.forms.get_leggtilfiler_form(form_token, form_build_id, product_id, selections, boundary)
+        formdata = self.forms.get_leggtilfiler_form(form_token, form_build_id, product_id, selections, boundary)
+        headers = {
+            "Content-Type" : "multipart/form-data; boundary="+boundary
+        }
+
+#         formdata = """------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="product_id"
+
+# """+str(product_id)+"""
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="form_build_id"
+
+# """+form_build_id+"""
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="form_token"
+
+# """+form_token+"""
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="form_id"
+
+# commerce_cart_add_to_cart_form_"""+str(product_id)+"""
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="line_item_fields[field_selection][und][0][value]"
+
+# [""" + sel_string + """]
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="line_item_fields[field_selection_text][und][0][value]"
+
+# """ + str(len(selections)) + """ filer
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="quantity"
+
+# """ + str(len(selections)) + """
+# ------FormBoundaryDXcsEa32cZCoJVSY
+# Content-Disposition: form-data; name="op"
+
+# Legg i kurv
+# ------FormBoundaryDXcsEa32cZCoJVSY--"""
+
+        res = self.kapi.post(url, formdata, headers)
+
+        return res
+
+    def get_checkout(self):
+        url = "http://data.kartverket.no/download/checkout"
+        res = self.kapi.get(url)
+        return res
+    
+    def post_fortsett_bestilling(self, res):
+
+        url = "http://data.kartverket.no"
+
+        form_action = self.kapi.get_form_action_by_id(res, "commerce-checkout-form-checkout")
+        form_build_id = self.kapi.get_form_build_id(res)
+        form_token = self.kapi.get_form_token(res)
+        url = url + form_action
+
+        payload = {
+            'op' : 'Fortsett', 
+            'form_build_id': form_build_id,
+            'form_token' : form_token,
+            'form_id' : 'commerce_checkout_form_checkout'
+            }
+
+        res = self.kapi.post(url, payload)
+        return res
 
 
-        checkout_id = form_action.split('/')[-2]
-        print checkout_id
-        res = self.kapi.get('http://data.kartverket.no/download/checkout')
-        res = self.kapi.get('http://data.kartverket.no/download/checkout/' + checkout_id)
-        res = self.kapi.get('http://data.kartverket.no/download/checkout/' + checkout_id + '/checkout')
+    def download(self, data_selection):
+        data_selection = self.selection.get_adresser_fylker()
+        url = "http://data.kartverket.no/download/system/files/matrikkeldata/adresser/"
+        for file in data_selection:
+            self.kapi.download_file("datatest", url + "/" + file)
 
-        return self.confirm_bestilling(checkout_id, res)
+
+    def order_dataset(self, dataset):
+
+        
+        res1 = self.get_bestilling_page(dataset)
+        
+        res2 = self.post_bestilling_page(dataset, res1)
+        
+        res3 = self.get_checkout()
+        
+        res4 = datasets.post_fortsett_bestilling(res3)
+
+
+
+def log_html(res, view):
+    f = open('views/' + view + '.html', 'w')
+    f.write(res.text.encode('utf8'))
 
 
 if __name__ == "__main__":
-    # kapi = KartverketApi("Kjartanb", "kjartan1")
-    # kapi.login()
 
     datasets = Datasets("Kjartanb", "kjartan1")
-    res = datasets.send_bestilling('adresser')
-    print res
-    # print res.text 
+    datasets.order_dataset("adresser")
+    datasets.download("adresser")
+
+

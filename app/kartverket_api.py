@@ -5,7 +5,7 @@ from kartverket_config import config
 class KartverketApi(object):
 
     def __init__(self, username, password):
-
+        
         self.username = username
         self.password = password
         self.url = config['url']
@@ -42,18 +42,12 @@ class KartverketApi(object):
     def get_form_token(self, response):
         return self.get_input_val(response, 'form_token')
 
-    def get_form_action_by_id(self, response, idsel):  
-        # print response.text
-        self.log_html(response, "formdata")
+    def get_form_action_by_id(self, response, idsel):
         soup = BeautifulSoup(response.text, 'html.parser')
         try:
             return soup.find('form').get('action')
         except:
             return None
-
-    def log_html(self, res, view):
-        f = open('views/' + view + '.html', 'w')
-        f.write(res.text.encode('utf8'))
 
     def verify_login_response(self, response):
         print response
@@ -65,19 +59,12 @@ class KartverketApi(object):
             payload = self.get_login_payload(self.username, self.password, form_build_id)
             session = self.create_session()
             res = session.post(self.url['authenticate'], data = payload)
-            self.log_html(res, "login")
-
             self.cookies = session.cookies
-
             self.session = session
         else:
             raise Exception("no form build id found")
 
     def get(self, url, headers=None):
-        # if headers:
-        #     self.session.headers.update(headers) 
-        # res = self.session.get(url)
-
         if not headers:
             headers = {            
                 'Cookie' : self.get_auth_cookie()
@@ -86,7 +73,6 @@ class KartverketApi(object):
             headers['Cookie'] = self.get_auth_cookie()
 
         return self.session.post(url)
-        # return res
 
 
     def get_auth_cookie(self):
@@ -108,9 +94,6 @@ class KartverketApi(object):
 
         return self.session.post(url, data=payload, headers=headers)
 
-
-
-
     def download_file(self, data_dir, url):
         local_filename = data_dir + '/' + url.split('/')[-1]
         r = self.session.get(url, stream=True)
@@ -123,11 +106,6 @@ class KartverketApi(object):
     def create_session(self):
         return requests.Session()
 
-
 if __name__ == "__main__":
     kapi = KartverketApi("Kjartanb", "kjartan1")
     kapi.login()
-
-    res = kapi.get("http://data.kartverket.no/download/mine/downloads")
-    print res
-    print res.text

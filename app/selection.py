@@ -22,3 +22,15 @@ class Selection(object):
             fylke_selections.append(fname)
             
         return fylke_selections
+
+    def get_dtm10m(self):
+        grid_selections = []
+        grids = self.get_selection_base('utm33')
+        n = 0
+        for g in grids:
+            if n > 10:
+                return grid_selections
+            gn = g['properties']['n']
+            n+=1
+            grid_selections.append("Terrengdata_" + str(gn)+ "_UTM33_10m_DEM.zip")
+        return grid_selections
