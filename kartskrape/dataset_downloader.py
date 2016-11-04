@@ -4,7 +4,7 @@
 import os
 import requests
 from selection import Selection
-from kartverket_api import KartverketApi
+from kartverket_api import KartverketApiHelper
 from forms import KartverketForm
 from dataset_config import dataset_config
 
@@ -14,7 +14,7 @@ class Datasets(object):
 
     def __init__(self, username, password):
         
-        self.kapi = KartverketApi(username, password)
+        self.kapi = KartverketApiHelper(username, password)
         self.kapi.login()
 
         self.selection = Selection()
@@ -33,12 +33,10 @@ class Datasets(object):
         form = self.bestilling_forms.get_confirm_form(form_build_id, form_token)
         return self.kapi.post("http://data.kartverket.no/download/checkout/"+checkout_id+"/checkout", form)
 
-
     def get_bestilling_page(self, dataset):
         url = dataset_config[dataset]['url']
         res = self.kapi.get(url)
         return res
-
 
     def post_bestilling_page(self, dataset, res):
 
@@ -50,52 +48,20 @@ class Datasets(object):
         form_id = self.kapi.get_form_id(res)
         product_id = self.kapi.get_form_product_id(res)
 
-
         selections = self.selection.get_adresser_fylker()
-        boundary = "----FormBoundaryDXcsEa32cZCoJVSY"
+        filer_string = "\"" + "\", \"".join(selections) + "\""
 
-        sel_string = "\"" + "\", \"".join(selections) + "\""
-        # formdata = self.forms.get_leggtilfiler_form(form_token, form_build_id, product_id, selections, boundary)
-        formdata = self.forms.get_leggtilfiler_form(form_token, form_build_id, product_id, selections, boundary)
-        headers = {
-            "Content-Type" : "multipart/form-data; boundary="+boundary
+        data = {
+            "product_id": product_id,
+            "form_token": form_token,
+            "form_id": form_id,
+            "line_item_fields[field_selection][und][0][value]" : filer_string,
+            "line_item_fields[field_selection_text][und][0][value]" : len(selections),
+            "quantity" : len(selections),
+            "op" : "Legg i kurv"
         }
 
-#         formdata = """------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="product_id"
-
-# """+str(product_id)+"""
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="form_build_id"
-
-# """+form_build_id+"""
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="form_token"
-
-# """+form_token+"""
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="form_id"
-
-# commerce_cart_add_to_cart_form_"""+str(product_id)+"""
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="line_item_fields[field_selection][und][0][value]"
-
-# [""" + sel_string + """]
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="line_item_fields[field_selection_text][und][0][value]"
-
-# """ + str(len(selections)) + """ filer
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="quantity"
-
-# """ + str(len(selections)) + """
-# ------FormBoundaryDXcsEa32cZCoJVSY
-# Content-Disposition: form-data; name="op"
-
-# Legg i kurv
-# ------FormBoundaryDXcsEa32cZCoJVSY--"""
-
-        res = self.kapi.post(url, formdata, headers)
+        res = self.kapi.post(url, data)
 
         return res
 
@@ -132,15 +98,12 @@ class Datasets(object):
 
 
     def order_dataset(self, dataset):
-
         
-        res1 = self.get_bestilling_page(dataset)
-        
-        res2 = self.post_bestilling_page(dataset, res1)
-        
+        res1 = self.get_bestilling_page(dataset)        
+        res2 = self.post_bestilling_page(dataset, res1)        
         res3 = self.get_checkout()
-        
         res4 = datasets.post_fortsett_bestilling(res3)
+
 
 
 
