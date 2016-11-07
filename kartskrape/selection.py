@@ -3,6 +3,7 @@
 
 from selection_config import selections
 import requests
+from dataset_config import selection
 
 
 class Selection(object):
@@ -11,9 +12,12 @@ class Selection(object):
         res = requests.get(selections[selection_name]['url'])
         return res.json()
 
+
+
     def get_adresser_fylker(self):
         fylke_selections = []
         fylker = self.get_selection_base('fylke')
+
         for f in fylker['features']:
             fn = f['properties']['n']
             fid = f['id']

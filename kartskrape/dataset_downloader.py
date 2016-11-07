@@ -5,8 +5,9 @@ import os
 import requests
 from selection import Selection
 from kartverket_api import KartverketApiHelper
-from forms import KartverketForm
-from dataset_config import dataset_config
+# from forms import KartverketForm
+from dataset import Dataset
+# from dataset_config import dataset_config
 
 
 
@@ -18,7 +19,7 @@ class Datasets(object):
         self.kapi.login()
 
         self.selection = Selection()
-        self.forms = KartverketForm()
+        # self.forms = KartverketForm()
         
         self.data_dir = self.setup_data_dir('datatest')
 
@@ -33,31 +34,32 @@ class Datasets(object):
         form = self.bestilling_forms.get_confirm_form(form_build_id, form_token)
         return self.kapi.post("http://data.kartverket.no/download/checkout/"+checkout_id+"/checkout", form)
 
-    def get_bestilling_page(self, dataset):
-        url = dataset_config[dataset]['url']
+    def get_bestilling_page(self, dataset, product_id):
+
+        url = dataset.get_product_page_url(product_id)
+        # url = dataset_config[dataset]['url']
         res = self.kapi.get(url)
         return res
 
-    def post_bestilling_page(self, dataset, res):
+    def post_bestilling_page(self, dataset, product_id, res, **kwargs): 
+        
+        url = dataset.get_product_page_url(product_id)
+        files = dataset.get_files(product_id)
 
-        url = "http://data.kartverket.no/download/content/offisielle-adresser-utm33-csv"
-        # url = dataset_config[dataset]['url']
         res = self.kapi.get(url)
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
         form_id = self.kapi.get_form_id(res)
         product_id = self.kapi.get_form_product_id(res)
-
-        selections = self.selection.get_adresser_fylker()
-        filer_string = "\"" + "\", \"".join(selections) + "\""
-
+        
+        filer_string = "\"" + "\", \"".join(files) + "\""
         data = {
             "product_id": product_id,
             "form_token": form_token,
             "form_id": form_id,
             "line_item_fields[field_selection][und][0][value]" : filer_string,
-            "line_item_fields[field_selection_text][und][0][value]" : len(selections),
-            "quantity" : len(selections),
+            "line_item_fields[field_selection_text][und][0][value]" : len(files),
+            "quantity" : len(files),
             "op" : "Legg i kurv"
         }
 
@@ -66,8 +68,7 @@ class Datasets(object):
         return res
 
     def get_checkout(self):
-        url = "http://data.kartverket.no/download/checkout"
-        res = self.kapi.get(url)
+        res = self.kapi.get("http://data.kartverket.no/download/checkout")
         return res
     
     def post_fortsett_bestilling(self, res):
@@ -97,25 +98,47 @@ class Datasets(object):
             self.kapi.download_file("datatest", url + "/" + file)
 
 
-    def order_dataset(self, dataset):
-        
-        res1 = self.get_bestilling_page(dataset)        
-        res2 = self.post_bestilling_page(dataset, res1)        
+    def order_dataset(self, dataset_id, product_id=None):
+        dataset = Dataset(dataset_id)
+        res1 = self.get_bestilling_page(dataset, product_id)        
+        res2 = self.post_bestilling_page(dataset, product_id, res1)        
         res3 = self.get_checkout()
         res4 = datasets.post_fortsett_bestilling(res3)
-
-
-
-
-def log_html(res, view):
-    f = open('views/' + view + '.html', 'w')
-    f.write(res.text.encode('utf8'))
 
 
 if __name__ == "__main__":
 
     datasets = Datasets("Kjartanb", "kjartan1")
-    datasets.order_dataset("adresser")
-    datasets.download("adresser")
+    # datasets.order_dataset("adresser", "utm33-csv")
+    datasets.order_dataset("sjo_terrengmodell", "50m-utm33")
+    # datasets.order_dataset("sjo_terrengmodell", "50m-utm33")
+
+    # datasets.download("adresser", "csv-utm33")
 
 
+    # datasets.order_dataset("stedsnavn")
+    # datasets.order_dataset("sjo_dybdekurver")
+
+    # datasets.order_dataset("sjo_terrengmodell", { "resolution" : 5 })
+    # datasets.order_dataset("sjo_terrengmodell", { "resolution" : 25 })
+    # datasets.order_dataset("sjo_terrengmodell", { "resolution" : 50 })
+
+
+    # datasets.order_dataset("admin", { "srid" : 4326 })
+    # datasets.order_dataset("admin", { "srid" : 25833 })
+    
+    # datasets.order_dataset("elveg_adresser")
+
+    # datasets.order_dataset("n50")
+
+    # datasets.order_dataset("grunnkrets")
+
+
+    # datasets.order_dataset("postsoner")
+
+    # datasets.order_dataset("terrengmodell")
+
+
+
+    # k = "https://hoydedata.no/LaserInnsyn/Home/DownloadFile?filename=DTM10_"
+    # k2 = "https://hoydedata.no/LaserInnsyn/Home/DownloadFile?filename=DTM10_"

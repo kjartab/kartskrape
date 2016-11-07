@@ -1,0 +1,1489 @@
+<a href="/LaserInnsyn/Home/DownloadFile?filename=DTM10_20161018.zip">DTM10</a>
+
+
+/LaserInnsyn/Home/Download
+
+<div id="leftSlidePanel" class="container sidebar sidebar-left" data-status="closed" style="left: -302px;"><div class="row">
+    <div style="overflow: visible;" class="col-xs-12 col-sm-12 col-md-12 col-lg1-12" data-side="left">
+
+    <!--<h4>
+        <span class="sidebarCloseBtn"><i class="glyphicon glyphicon-remove"></i></span>
+    </h4>-->            
+    <script type="text/javascript">
+    
+    var exportIsVisible = false;
+    var selectedAreaType = "extent";  // default
+    var serviceWebapp = "/LaserServices";
+
+    //var ntmMaxGeomWidthGrid = 100000;  // meters
+    var ntmMaxGeomWidth = 100000;  // meters
+    var ntmSelectZoneCount = 2;  // number of selectable zones on each side of the recommended ntm zone
+    var exportGeometry = null;
+    var lasToken = 'WFkM0lLMFHFg4iCBrlEO4JVi2tgpjK6_nD6Erj8ejeWrZrV2VxX3lPbYFQ4Z356_';
+    var subscriptionExport = false;
+
+    var maptileArea = {
+        15000: 225000000,
+        20000: 122880000,
+        10000: 30720000,
+        5000: 7680000,
+        2000: 1920000,
+        1000: 480000,
+        500: 120000
+    }
+
+
+    var gridFormats = [
+        {
+            id: 5,
+            alias: 'GeoTIFF'
+        },        
+        {
+            id: 3,
+            alias: 'USGS DEM'
+        }
+    ];
+
+    var punktskyFormats = [
+        {
+            id: 1,
+            alias: 'LAZ'
+        },        
+        {
+            id: 7,
+            alias: 'ZLAS'
+        }
+    ];
+
+    var skyviewFormats = [{
+        id: 9,
+        alias: 'Skyview'
+    }];
+
+    // file format : limit in MB per file
+    var exportFormatLimit = {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0
+    }
+
+    var formatRequiresProjectProduct = [3,5];
+
+    //var noResFormats = [1,7];
+
+    // file format -< method mapping
+    var formatCompressionMethodMapping = {
+        1: [0],  
+        2: [0], 
+        3: [0],       
+        4: [0],
+        5: [1, 0, 2],  // først i lista blir default valgt
+        6: [0],
+        7: [0]
+    }
+    var compressionMethodHasValue = {
+        0: false,
+        1: false,
+        2: false
+    }
+
+    var validMapsheetMosaicCoordsys = [0, 25832, 25833, 25835, 5105, 5106, 5107, 5108, 5109, 5110, 5111, 5112, 5113, 5114, 5115, 5116, 5117, 5118, 5119, 5120, 5121, 5122, 5123, 5124, 5125, 5126, 5127, 5128, 5129, 5130];  // mapsheet mosaic only available for these out-wkid's
+    var validNTMExportMapsheets = [1000, 2000, 5000, 10000];
+
+    var nhmAsDatasetDivisonOnly = ['dtm10', 'dtm50', 'dom10', 'dom50'];  
+
+
+
+
+    function setExportVisible(visible) {
+        //console.log("setExportVisible: " + visible);
+        exportIsVisible = visible;
+        map.showExportGraphics(visible);  // toggle graphics layer on/off
+        if (visible) {
+            setExportAreaType(selectedAreaType, true);
+            map.closeTopPanels();
+        }
+        else {
+            map.setDrawMode();  // deactivates draw mode (if selected)
+            map.showKartbladLayer(-1);  // hide maptile layer (if visible)
+            map.setKommunePickMode(false);
+        }
+    }
+
+    function initExport() {
+        _initExportSelects(map.getCurrentWkid());
+        _updateCompMethod(1);  // filter compression methods..
+        _initSosiUpload();
+        
+        //var compSlider = $('#compressionValueSlider').slider({ tooltip: 'hide' });
+        //compSlider.on('change', _updateCompressionValueLabel);
+        //_updateCompressionValueLabel({ value: { newValue: 10 }});
+
+        map.on("mapExtentChange", function (ext) {
+            if (selectedAreaType == "extent" && exportIsVisible)
+                updateProjects();
+        });
+        map.on("exportGraphicsChange", function () {
+            if (exportIsVisible)
+                updateProjects();
+        });        
+        resetWizard();
+        hideHiddenOptions('exportProduct');
+        hideHiddenOptions('exportGridType');
+    }
+
+    function hideHiddenOptions(selectId) {
+        var sel = $('#' + selectId);
+        var options = sel.parent().find("input[type='radio'][value='hidden']").parent().parent().parent();
+        $(options).each(function() {
+            $(this).hide();
+        });
+    }
+
+    function resetWizard() {        
+  
+        $('#gridTypePanel').hide();
+        $('#projectSelectPanel').hide();
+        $('#formatPanel').hide();
+        $('#projectProductPanel').hide();
+        $('#resolutionPanel').hide();
+        $('#coordSysPanel').hide();
+        $('#fileDivisionPanel').hide();
+        $('#nhmSelectPanel').hide();
+        $('#dtedSelectPanel').hide();
+        $('#noDataPanel').hide();
+        $('#skyviewfactorPanel').hide();
+
+        $('#exportGridType').multiselect('deselectAll');
+        $('#exportGridType').multiselect('refresh');
+        $('#exportGridType').multiselect('select', 'hidden');   
+
+        $('#finalizeButton').prop('disabled', true);
+        $('#createSubscriptionBtn').prop('disabled', true);
+    }
+    
+
+    function setExportProduct(product) {
+        resetWizard();
+        if (product == 'grid') {
+            $('#gridTypePanel').show();
+            //ntmMaxGeomWidth = ntmMaxGeomWidthGrid;            
+        }
+        else if (product == 'punktsky') {
+            $('#projectSelectPanel').show();             
+            $('#formatPanel').show();
+            $('#coordSysPanel').show();
+            $('#fileDivisionPanel').show();
+            disableMapSheetSelect(true);
+            populateFormatSelect(punktskyFormats);
+            $('#finalizeButton').prop('disabled', false);
+            $('#createSubscriptionBtn').prop('disabled', false);
+            //ntmMaxGeomWidth = 0;  // disable export in NTM  for punktsky
+            //_limitNTM();
+        }        
+        else if (product == 'skyview') {           
+            $('#projectSelectPanel').show(); 
+            $('#skyviewfactorPanel').show();
+            populateFormatSelect(skyviewFormats);
+            $('#finalizeButton').prop('disabled', false);
+            $('#projectSelect').multiselect('deselectAll', false);
+            $('#projectSelect').multiselect('refresh');            
+        }
+        setDivisionType('0');
+    }
+
+    function setExportGridType(type) {      
+        var availableFormats = [];
+
+        if (type == "nhm") {  // NHM export
+            $('#nhmSelectPanel').show();
+            $('#formatPanel').show();
+            $('#dtedSelectPanel').hide();
+            $('#projectSelectPanel').hide();                             
+            $('#resolutionPanel').hide();
+            $('#coordSysPanel').show();
+            $('#fileDivisionPanel').show();
+            $('#projectProductPanel').hide();
+            $('#noDataPanel').show();
+            availableFormats = gridFormats;
+        }
+        else if (type == "dted") {  // NHM DTED 
+            $('#projectSelectPanel').hide();   
+            $('#dtedSelectPanel').show();
+            $('#nhmSelectPanel').hide();
+            $('#formatPanel').hide();
+            $('#resolutionPanel').hide();
+            $('#coordSysPanel').hide();
+            $('#fileDivisionPanel').hide();
+            $('#projectProductPanel').hide();
+            $('#noDataPanel').show();
+        }
+        else { // project export
+            $('#nhmSelectPanel').hide();
+            $('#dtedSelectPanel').hide();
+            $('#projectSelectPanel').show();              
+            $('#formatPanel').show();
+            $('#resolutionPanel').show();
+            $('#coordSysPanel').show();
+            $('#fileDivisionPanel').show();
+            $('#projectProductPanel').show();
+            $('#noDataPanel').show();
+            availableFormats = gridFormats;
+        }       
+
+        populateFormatSelect(availableFormats);
+        disableMapSheetSelect(false);
+        setExportCoordSys(0);
+        $('#finalizeButton').prop('disabled', false);
+        $('#createSubscriptionBtn').prop('disabled', false);
+    }
+
+    function populateFormatSelect(formats) {                
+        $('#formatSelect').html('');  // clear all formats       
+        for (var f = 0; f < formats.length; f++) {
+            var format = formats[f];
+            var opt = "<option value='" + format.id + "'>" + format.alias + "</option>";
+            $('#formatSelect').append(opt);            
+            if (f == 0)
+                _updateCompMethod(format.id);
+        }
+        $('#formatSelect').multiselect('rebuild');        
+    }
+
+    function updateProjects() {
+        //console.log("Update export projects...");
+        var sel = $('#projectSelect');
+        var selectedProjects = sel.val();
+        sel.empty();
+
+        _getExportGeometry(function (geom) {
+           
+            _limitNTM(geom);
+            
+            map.getProjectInfo(geom).then(function (res) {
+
+                res.features = map.sortFeatures(res.features, "HOYDESYSTEM", true);
+
+                var projectGroups = {  // type-groups
+                    1: {
+                        name: "Laser",
+                        projects: []
+                    },
+                    2: {
+                        name: "Bildematching",
+                        projects: []
+                    },
+                    3: {
+                        name: "Mobil laser",
+                        projects: []
+                    },
+                    4: {
+                        name: "Grønn laser",
+                        projects: []
+                    }
+                };
+                for (var i = 0; i < res.features.length; i++) {                    
+                    var _attr = res.features[i].attributes;
+                    var publicAccess = _attr["TILGANG"]*1 == 1;   
+                    var loginUser = false;
+                    if (publicAccess || loginUser) { 
+                        var _type = _attr["TYPE"];   // 1,2,3,4                
+                        var projectName = _attr["LAS_PROJECT_NAME"];
+                        var resolution = _attr["OPPLOSNING"] * 1; 
+                        var pointDensity = _attr["PUNKTTETTHET"] * 1;
+                        var area = _attr["SHAPE.AREA"];
+                                    
+                        var _selected = $.inArray(projectName, selectedProjects) > -1 ? "selected" : "";  // check previous selected project
+                        projectGroups[_type].projects.push({
+                            name: projectName,
+                            resolution: resolution,
+                            pointDensity: pointDensity,
+                            area: area,
+                            selected: _selected
+                        });
+                    }
+                }
+                for (key in projectGroups)
+                {
+                    if (projectGroups[key].projects.length > 0)
+                    {
+                        var projectGroup = projectGroups[key].name;
+                        sel.append("<optgroup label='" + projectGroup + "'>");
+                        for (var l = 0; l < projectGroups[key].projects.length; l++)
+                        {
+                            var project = projectGroups[key].projects[l];
+                            sel.append("<option value='" + project.name + "' data-res='" + project.resolution + "' data-area='" + project.area + "' " + project.selected + " data-density='" + project.pointDensity + "'>" + project.name + " (" + project.resolution + " m)</option>");
+                        }
+                        sel.append("</optgroup>");
+                    }
+                }
+                
+                var noProjectsInfoDisplay = res.features.length > 0 ? "none" : "block";
+                $('#noProjectsInfo').css("display", noProjectsInfoDisplay);
+
+                sel.multiselect('rebuild');
+                if (res.features.length > 0) {
+                    sel.multiselect('enable');
+                }
+                              
+                var multiselectContainer = sel.next().find(".multiselect-container");
+                multiselectContainer.disableSelection();
+            });
+        });
+    }
+
+    function setExportCoordSys(wkid) {
+        var sel = $('#coordSysSelect');
+        sel.multiselect('deselectAll');
+        sel.multiselect('select', wkid);
+        sel.multiselect('refresh');
+    }
+
+    function limitNHMDivision() {
+
+        var divisionSelect = $('#divisionSelect');
+        var divisionInputs = divisionSelect.parent().find('[type="radio"]');
+        for (var i = 0; i < divisionInputs.length; i++) {
+            _enableMultiselectOption($(divisionInputs[i]));
+        }
+             
+        var selectedDatasets = $('#nhmDataset').val();
+        if (selectedDatasets) {
+            for (var i = 0; i < selectedDatasets.length; i++) {
+                var asDatasetOnly = $.inArray(selectedDatasets[i], nhmAsDatasetDivisonOnly) > -1;               
+                if (asDatasetOnly) {
+                    setDivisionType('0');
+                    var disableDivisionValues = [1, 2];            
+                    for (var v = 0; v < disableDivisionValues.length; v++) {
+                        _disableMultiselectOption(divisionSelect.parent().find('input[value="' + disableDivisionValues[v] + '"]'));  
+                    }                    
+                    break;
+                }
+            }
+        }
+    }
+
+    function _limitNTM(geom) {
+       
+        var sel = $('#coordSysSelect');
+        var _selectedNTM = sel.val();
+        var ntmGrp = sel.find("optgroup");
+        ntmGrp.empty();
+        sel.multiselect('rebuild');
+        //sel.multiselect('select', _selectedNTM);
+     
+        if (!geom)
+            return;
+       
+        var _ext = geom.getExtent();
+        var _geomWidth = _ext.xmax - _ext.xmin;        
+        if (_geomWidth > ntmMaxGeomWidth)
+            return;
+        
+        var _centroid = typeof geom.getCentroid == 'function' ? geom.getCentroid() : geom.getCenter();                            
+        map.getLatLon(_centroid).then(function (res) {
+            var _centerLat = Math.floor(res[0].x);
+            //console.log("center NTM zone: " + _centerLat);
+            for (var i = _centerLat - ntmSelectZoneCount; i <= _centerLat + ntmSelectZoneCount; i++) {
+                if (i >= 5 && i <= 30) {
+                    var _ntmWkid = "51";
+                    _ntmWkid += i < 10 ? "0" + i : i;
+                    //console.log(i, _ntmWkid);
+                    var _highlight = i == _centerLat ? "true" : "false";
+                    ntmGrp.append("<option value='" + _ntmWkid + "' data-highlight='" + _highlight + "'>NTM " + i + "</option>");
+                }
+            }
+            sel.multiselect('rebuild');
+            sel.multiselect('select', _selectedNTM);
+            sel.multiselect('refresh');
+        });
+    }
+
+    function _projectSelected(option, checked) {        
+        if (checked) {            
+            var isSkyviewExport = $('#exportProduct').val() == 'skyview';
+            if (isSkyviewExport) {
+                var selectedProject = $(option).val();
+                var projectSel = $('#projectSelect');
+                projectSel.multiselect('deselectAll');
+                projectSel.multiselect('select', selectedProject);
+            }
+
+            /*if ($(option).val() == "AlleOrtofoto") {  // de-select all other selected projects
+                projectSel.multiselect('deselectAll');
+                projectSel.multiselect('select', 'AlleOrtofoto');
+            }
+            else {
+                projectSel.multiselect('deselect', 'AlleOrtofoto');
+            }*/
+        }        
+        //_limitResSelect();
+    }
+
+    function _limitResSelect() {
+
+        var maxRes = 100000;
+        var projectSel = $('#projectSelect');
+        $.each(projectSel.find('option:selected'), function () {
+            var _res = $(this).data('res') * 1;
+            maxRes = _res < maxRes ? _res : maxRes;
+        });
+        //console.log("max resolution: " + maxRes + " cm");
+
+        var sel = $('#resolutionSelect');
+
+        var prevSelectedRes = sel.val() * 1;
+        _disableAllMultiselectOptions(sel);
+
+        var inputs = sel.parent().find('input');
+        var defaultSelected = false;
+        for (var i = 0; i < inputs.length; i++) {
+            var input = $(inputs[i]);
+            var _res = input.val();
+            if (_res * 1 >= maxRes) {
+                _enableMultiselectOption(input);
+                if (!defaultSelected && prevSelectedRes < maxRes) {
+                    sel.multiselect('select', _res);  
+                    defaultSelected = true;
+                }
+            }
+        }
+        if (!defaultSelected) {
+            sel.multiselect('select', prevSelectedRes);  // resets users previous resolution selection
+        }
+    }
+
+    function _updateCompMethod(formatID) {
+        
+        var sel = $('#compMethodSelect');                       
+        _disableAllMultiselectOptions(sel); // disables all compression methods
+
+        // enable relevant compression methods, based on selected format:
+        var compMethods = formatCompressionMethodMapping[formatID];
+        if (compMethods) {
+            for (var i = 0; i < compMethods.length; i++) {
+                var input = sel.parent().find('input[value="' + compMethods[i] + '"]');
+                _enableMultiselectOption(input);
+                if (i == 0) {
+                    sel.multiselect('select', compMethods[i]);  // selects first possible compression method for selected format
+                    _showCompressionValueSlider(compMethods[i]);
+                }            
+            }       
+        }
+    }
+
+    function _updateDivisionSelect(selectedWkid) {
+        var sel = $('#divisionSelect');
+        var input = sel.parent().find('input[value="1"]');  // mapsheet option
+        selectedWkid = selectedWkid * 1;
+        var mapsheetDivisionOK = $.inArray(selectedWkid, validMapsheetMosaicCoordsys) > -1;
+        if (mapsheetDivisionOK) {                      
+            /*var sheetSelect = $('#divisionMaptileSelect');
+            var km15input = sheetSelect.parent().find('input[value="15000"]');
+            if (km15input) {
+                _enableMultiselectOption(km15input); 
+                if (selectedWkid >= 5105 && selectedWkid <= 5130) { // NTM => 15km mapsheets not supported                              
+                    if (sheetSelect.val() == '15000') {
+                        sheetSelect.multiselect('deselect', '15000');
+                        sheetSelect.multiselect('select', '500');
+                    }
+                    _disableMultiselectOption(km15input);
+                }
+            }*/
+            _enableMultiselectOption(input);            
+        }
+        else {
+            if ($(sel).val() == '1') {
+                //sel.multiselect('deselect', '1');
+                //sel.multiselect('select', '0');  // auto-select 'none' if mapsheet is not available for selected coordsys
+                setDivisionType('0');  // auto-select 'none' if mapsheet is not available for selected coordsys
+            }
+            _disableMultiselectOption(input);
+        }
+    }
+
+    function _showCompressionValueSlider(compMethod) {           
+        if (compressionMethodHasValue[compMethod])
+            $('#compressionValuePanel').show();
+        else
+            $('#compressionValuePanel').hide();
+    }
+
+    function _disableAllMultiselectOptions(select) {
+        select.parent().find('input').each(function () {
+            select.multiselect('deselect', $(this).val());
+            $(this).parents('li').addClass('disabled');
+            $(this).prop('disabled', true);
+        });
+    }
+
+    function _enableMultiselectOption(input) {
+        input.parents('li').removeClass('disabled');
+        input.prop('disabled', false);
+    }
+
+    function _disableMultiselectOption(input) {
+        input.parents('li').addClass('disabled');
+        input.prop('disabled', true);
+    }
+
+    function _initExportSelects(mapWkid) {
+
+        $('#typeSelect').multiselect({  // export area
+            buttonWidth: '100%'
+        });
+
+        $('#exportGridType').multiselect({
+            buttonWidth: '100%'
+        });        
+
+        $('#exportProduct').multiselect({
+            buttonWidth: '100%'
+        });         
+
+        $('#nhmDataset').multiselect({
+            nonSelectedText: map.lang("exportAvailableDatasets"), 
+            buttonWidth: '100%'
+        });
+
+        $('#dtedDataset').multiselect({
+            nonSelectedText: map.lang("exportAvailableDatasets"), 
+            buttonWidth: '100%'
+        });
+
+        $('#svfDirections').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#svfKernelSize').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#projectSelect').multiselect({
+            nonSelectedText: map.lang("exportAvailableProjects"), 
+            enableClickableOptGroups: true,
+            disableIfEmpty: true,
+            buttonWidth: '100%',
+            nSelectedText: map.lang("exportSelectedProjectCountText"), 
+            allSelectedText: map.lang('exportAllProjectsSelected'),  
+            onChange: _projectSelected,
+            /*optionLabel: function (element) {
+                var sortIcon = $(element).val() != "AlleOrtofoto" ? "<i class='glyphicon glyphicon-sort'></i> " : "";                                
+                return sortIcon + $(element).html();
+            },*/
+            buttonText: function(options, select) {
+                if (options.length == 0) {
+                    return map.lang("exportAvailableProjects");
+                }
+                else if (options.length == 1) {
+                    return $(options[0]).html();
+                }
+                else if (options.length > 1) {
+                    return options.length + map.lang("exportSelectedProjectCountText"); 
+                }
+            }
+        });
+
+        $('#formatSelect').multiselect({
+            buttonWidth: '100%'
+        }).on('change', function () {
+            var _formatID = $(this).val()*1;
+            _updateCompMethod(_formatID);
+            //_toggleProjectProductPanel(_formatID);
+            //var noRes = $.inArray(_formatID, noResFormats) > -1;
+            //_disableResolution(noRes);
+        });
+
+        $('#resolutionSelect').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#fillColorSelect').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#coordSysSelect').multiselect({
+            buttonWidth: '100%',
+            optionLabel: function (element) {
+                var _highlight = $(element).data("highlight");
+                return _highlight ? "<span style='font-weight: bold;'>" + $(element).html() + "</span>" : $(element).html();
+            }            
+        })./*multiselect('select', mapWkid).*/on('change', function () {            
+            _updateDivisionSelect($(this).val());
+        })
+
+        $('#divisionSelect').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#divisionMaptileSelect').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#selectMaptileSelect').multiselect({
+            buttonWidth: '100%'
+        }).on('change', function () {
+            map.clearExportDrawLayer();
+            var layerIdx = $(this).val();            
+            updateProjects();
+            map.showKartbladLayer(layerIdx*1);
+        });
+
+        $('#projectProductSelect').multiselect({
+            buttonWidth: '100%'
+        });
+
+        $('#compMethodSelect').multiselect({
+            buttonWidth: '100%',
+            onChange: function (e) {
+                _showCompressionValueSlider($(e).val() * 1);                
+            }
+        });
+
+        $('#coordMinX').blur(_showInputExtent);
+        $('#coordMiny').blur(_showInputExtent);
+        $('#coordMaxX').blur(_showInputExtent);
+        $('#coordMaxY').blur(_showInputExtent);        
+    };
+
+    function _showInputExtent() {
+        var _inputExt = _getCoordInputExtent();
+        if (_inputExt && map) {
+            map.addExportGeometry(_inputExt, true);
+        }
+    }
+
+    function setExportAreaType(type, doNotClearGfx) {
+
+        selectedAreaType = type;
+        map.setDrawMode(); // clear draw mode
+        if (!doNotClearGfx)
+            map.clearExportDrawLayer();
+        //$('#areaCoordsPanel').hide();
+        $('#sosiUploadPanel').hide();
+        $('#selectMaptilePanel').hide();
+        $('#bufferDistancePanel').hide();
+        $('#areaSelectContainer').css('width', '100%');
+        map.showKartbladLayer(-1);  // hide map tile layer
+        map.setKommunePickMode(false);
+        map.removeSosiMapService();
+        updateProjects();
+
+        if (type == "rectangle") {
+            map.setDrawMode("rectangle");
+        }
+        else if (type == "polygon") {
+            map.setDrawMode("polygon");
+        }
+        /*else if (type == "coords") {
+            $('#areaCoordsPanel').show();
+            _showInputExtent();
+        }*/
+        /*else if (type == "maptile") {
+            $('#areaSelectContainer').css('width', '50%');
+            $('#selectMaptilePanel').show();
+            var _layerIdx = $('#selectMaptileSelect').val();
+            map.showKartbladLayer(_layerIdx * 1);
+        }*/
+        else if (type.indexOf("buffer") > -1) {           
+            var drawMode = type == "pointbuffer" ? "point" : "polyline";
+            map.setDrawMode(drawMode);
+            $('#areaSelectContainer').css('width', '70%');
+            $('#bufferDistancePanel').show();
+        }
+        else if (type == "kommune") {
+            map.setKommunePickMode(true);
+        }
+        else if (type == "sosi") {
+            $('#areaSelectContainer').css('width', '50%');
+            $('#sosiUploadPanel').show();
+        }
+    }
+
+
+    function hasExportGeometry() {
+        switch (selectedAreaType) {
+            case "extent": return true;
+            case "sosi": return map.hasSosiGeometry();
+            default: return map.getExportGeometry() != null;
+        }
+    }
+
+    function _getExportGeometry(callback) {
+        switch (selectedAreaType) {
+            case "extent": callback(map.getExtent()); return;
+            case "sosi": map.getSosiGeometry(callback); return;
+            default: map.getExportGeometry(callback); return;
+        }
+    }
+
+    function _getWKT(exportGeometry) {
+        var _wkt = {
+            type: "Polygon",
+            coordinates: []
+        };
+
+        if (exportGeometry.type == "polygon") {
+            var _isMultipart = exportGeometry.rings.length > 1;
+            if (_isMultipart)
+                _wkt.type = "MultiPolygon";            
+
+            for (var i = 0; i < exportGeometry.rings.length; i++) {
+                var _ring = exportGeometry.rings[i];
+                var c = [];
+                for (var r = 0; r < _ring.length; r++) {  
+                    var _coordPair = _ring[r];
+                    c.push([Math.round(_coordPair[0]), Math.round(_coordPair[1])]);
+                }
+                _isMultipart ? _wkt.coordinates.push([c]) : _wkt.coordinates.push(c);                            
+            }
+        }
+        else if (exportGeometry.type == "extent") {
+            var c = [];
+            c.push([Math.round(exportGeometry.xmin), Math.round(exportGeometry.ymin)]);
+            c.push([Math.round(exportGeometry.xmin), Math.round(exportGeometry.ymax)]);
+            c.push([Math.round(exportGeometry.xmax), Math.round(exportGeometry.ymax)]);
+            c.push([Math.round(exportGeometry.xmax), Math.round(exportGeometry.ymin)]);
+            c.push([Math.round(exportGeometry.xmin), Math.round(exportGeometry.ymin)]);  // close polygon...
+            _wkt.coordinates.push(c);
+        }
+
+        return _wkt;
+    }
+
+    function setDivisionType(type) {        
+        var sel = $('#divisionSelect');
+        sel.multiselect('deselectAll');
+        sel.multiselect('select', type);  
+        sel.multiselect('refresh');  
+
+        $('#divisionSelectContainer').css('width', '100%');
+        $('#divisionMaptilePanel').hide();
+
+        if (type == "1") {
+            $('#divisionSelectContainer').css('width', '50%');
+            $('#divisionMaptilePanel').show();
+        }
+    }
+
+    function disableMapSheetSelect(b) {        
+        var mapsheetRadio = $('#divisionSelectContainer .dropdown-menu input[value=1]');
+        var mapsheetOption = mapsheetRadio.parent().parent().parent();
+        if (b)
+            $(mapsheetOption).hide();
+        else
+            $(mapsheetOption).show();
+    }
+
+    function _getCoordInputExtent() {
+        var minx = $('#coordMinX').val();
+        var miny = $('#coordMinY').val();
+        var maxx = $('#coordMaxX').val();
+        var maxy = $('#coordMaxY').val();
+        if (minx && miny && maxx && maxy)
+            return map.getExtent(minx, miny, maxx, maxy);   
+    }
+
+    function _getSortedProjects() {
+        var selectedProjects = [];
+        $('#projectSelect').next().find(".multiselect-container input:checked").each(function () {
+            selectedProjects.push($(this).val());          
+        });        
+        return selectedProjects.join();
+    }
+
+    /*function openSubscribeDlg() {
+        if (!hasExportGeometry()) {
+            alert(map.lang("exportAreaNotSpecified"));
+            return;
+        }
+
+        var isNHM = $('#exportType').val() == 'nhm';
+        var isDTED = $('#exportType').val() == 'dted';
+        if (isNHM) {
+            if ($('#nhmDataset :selected').length < 1) {
+                alert(map.lang("exportDatasetNotSelected"));
+                return;
+            }
+        }
+        else if (isDTED) {
+            if ($('#dtedDataset :selected').length < 1) {
+                alert(map.lang("exportDatasetNotSelected"));
+                return;
+            }
+        }
+
+        _getExportGeometry(function (geom) {
+            exportGeometry = geom;  // store current subscription area
+
+            // show export settings in subscription dialog:
+            $('#subscriptionFormat').html($('#formatSelect').find('option:selected').text());
+            var _compMethod = $('#compMethodSelect').find('option:selected').text();
+            var _compValue = compressionMethodHasValue[$('#compMethodSelect').val()] ? " (" + $('#compressionValueSlider').val() + "%)": "";
+            $('#subscriptionCompression').html(_compMethod + _compValue);
+            $('#subscriptionFillColor').html($('#fillColorSelect').find('option:selected').text());
+            $('#subscriptionCoordsys').html($('#coordSysSelect').find('option:selected').text());
+            $('#subscriptionDivision').html($('#divisionSelect').find('option:selected').text());
+            $('#projectSubscriptionSelectedResLabel').html($('#resolutionSelect').find('option:selected').text());
+            $('#areaSubscriptionSelectedRes').html($('#resolutionSelect').find('option:selected').text());
+            
+            $('#subscriptionModal').modal('show');
+        });
+    }*/
+
+    function openExportDlg(isSubscription) {        
+        if (!hasExportGeometry()) {
+            alert(map.lang("exportAreaNotSpecified"));
+            return;
+        }
+       
+        var isPunktsky = $('#exportProduct').val() == 'punktsky';
+        var isNHM = $('#exportGridType').val() == 'nhm' && !isPunktsky;
+        var isDTED = $('#exportGridType').val() == 'dted' && !isPunktsky;
+        if (isNHM) {
+            if ($('#nhmDataset :selected').length < 1) {
+                alert(map.lang("exportDatasetNotSelected"));
+                return;
+            }
+        }
+        else if (isDTED) {
+            if ($('#dtedDataset :selected').length < 1) {
+                alert(map.lang("exportDatasetNotSelected"));
+                return;
+            }
+        }
+        else if (!isSubscription && $('#projectSelect :selected').length < 1) {
+            alert(map.lang("exportProjectsNotSelected"));
+            return;
+        }        
+
+        var noDataValue = $('#noDataValue').val();
+        var doOverrideNoData = $('#overrideNoDataCB').prop('checked');
+        if (doOverrideNoData && (!noDataValue || isNaN(noDataValue))) {
+            alert(map.lang("exportInvalidNoDataValue"));
+            return;
+        }
+
+        _getExportGeometry(function (geom, extArea) {
+            if (!geom)
+                return;
+
+            exportGeometry = geom;            
+            subscriptionExport = isSubscription === true;  // set global variable
+
+            $('#exportModalHeading').html(subscriptionExport ? map.lang("subscriptionModalHeading") : map.lang("exportModalHeading"));
+            $('#exportLinkMail').css("display", subscriptionExport ? "none" : "block");
+            $('#subscriptionTypeInfo').css("display", subscriptionExport ? "block" : "none");
+            $('#subscriptionTypeInfo').html(isNHM || isDTED ? map.lang("areaSubscriptionInfo") : map.lang("projectSubscriptionInfo"));
+            
+            $('#exportModal').modal('show');
+           
+            if (!extArea) {
+                var _geom = geom.type == "extent" ? geom : geom.getExtent();
+                extArea = _geom.getWidth() * _geom.getHeight();
+            }
+            //console.log("export area: " + extArea);
+
+            var _userLimitMB = 100000; 
+
+            var _expSize = 0;
+            var _res = $('#resolutionSelect').val()*1;
+            var _isAsciiFormat = $('#formatSelect').val()*1 == 3; 
+            var _projectSelected = isNHM ? $('#nhmDataset').find('option:selected') : isDTED ? $('#dtedDataset').find('option:selected') : $('#projectSelect').find('option:selected');
+            var _isPunktsky = $('#exportProduct').val() == 'punktsky';
+           
+            if (_res == 0 || isNHM || isDTED) {  // prosjektoppløsning eller NHM datasett valgt
+                _res = 0;                
+                $.each(_projectSelected, function () {                 
+                    var _r = _isPunktsky ? $(this).data('density') * 1 : $(this).data('res') * 1;  
+                    var _prjArea = $(this).data('area') * 1;  
+                    var _a = extArea == 0 || extArea > _prjArea ? _prjArea : extArea;
+                    _expSize += _isPunktsky ? _getPunktskyExportSize(_a, _r) : _getGridExportSize(_a, _r, _isAsciiFormat);
+                });  
+            }
+            else {  // bruker har valgt oppløsning
+                _expSize = _getGridExportSize(extArea*_projectSelected.length, _res, _isAsciiFormat);
+            }
+                       
+            var _sizeText = isSubscription && !isNHM && !isDTED ? "?" :_expSize == 0 ? "&lt;1&nbsp;MB" : _expSize >= 1000 ? Math.round(_expSize/1000) + "&nbsp;GB" : _expSize + "&nbsp;MB";
+            $('#exportEstimatedSize').html(_sizeText);
+
+            var _format = $('#formatSelect').val();
+            var _limitExeededText = "";
+            var _disableExportBtn = false;
+
+            if (_userLimitMB < _expSize) {
+                _limitExeededText = map.lang("exportLimitExeededWarning");
+                _disableExportBtn = true;
+            }
+            else {  // check file format limit
+                var _formatLimitMB = exportFormatLimit[_format*1];  
+                //console.log("Format file size limit: " + _formatLimitMB + " MB");
+                if (_formatLimitMB > 0) {  // 0 = ingen begrensning
+                    var _imageMosaic = $('#divisionSelect').val()*1;
+                    if (_imageMosaic == 0) {  // ingen oppdeling  (én fil)
+                        if (_expSize > _formatLimitMB) {
+                            _limitExeededText = map.lang("exportFileSizeLimitExeededWarning");
+                            var _fileSize = _expSize >= 1000 ? Math.round(_expSize/1000) + " GB" : _expSize + " MB";
+                            _limitExeededText = _limitExeededText.replace("%FILESIZE%", _fileSize);
+                            _disableExportBtn = true;
+                        }
+                    }
+                    /*else {  // kartbladoppdeling
+                        var _mapsheetArea = maptileArea[$('#divisionMaptileSelect').val()*1];
+                        //console.log("map sheet size: " + _mapsheetArea + " kvm");                    
+                        var _maptilesCount = Math.ceil(extArea / _mapsheetArea);
+                        //console.log("maptilesCount: " + _maptilesCount);
+                        var _estFileSize = _expSize / _maptilesCount;
+                        //console.log("estFileSize: " + _estFileSize + " MB");
+                        if (_estFileSize > _formatLimitMB) {
+                            _limitExeededText = map.lang("exportFileSizeLimitExeededWarning");
+                            var _fileSize = _estFileSize >= 1000 ? Math.round(_estFileSize/1000) + " GB" : _estFileSize + " MB";
+                            _limitExeededText = _limitExeededText.replace("%FILESIZE%", _fileSize);
+                            _disableExportBtn = true;
+                        }                        
+                    }*/
+                }
+            }
+
+            $('#exportLimitExeededText').html(_limitExeededText);
+            $('#startExportBtn').prop('disabled', _disableExportBtn);
+            
+            $('#exportEstimatedTime').html('<img src="' + webappPath + 'Images/loading_small.gif"/>');
+            _getEstimatedTime(extArea, _format, function(estTime) {
+                $('#exportEstimatedTime').html(estTime);  
+            });
+        });
+    }
+
+    function _getEstimatedTime(area, format, callback) {        
+
+        var _url = "//hoydedata.no/arcgis/rest/services/exportTimeEstimate/GPServer/exportTimeEstimate/execute?do=get&area=" + Math.round(area) + "&format=" + format + "&f=json&token=" + lasToken;
+        $.ajax({
+            cache: false,
+            url: _url,
+            success: function(res) {
+                res = JSON.parse(res);
+                var timeText = res.results && res.results.length > 1 ? res.results[1].value : "?";
+                callback(timeText);
+            }
+        });        
+    }
+
+    function _getGridExportSize(area, res, isAscii) {
+        var bands = 4;  // egentlig ett bånd, men det er 32 bit (8*4=32)
+        if (isAscii)
+            bands = 7;  // 7 bytes/pixel ved ASCII 
+        //console.log("export res: " + res);
+        var pixCount = area / Math.pow(res, 2);
+        //console.log("export pixels: " + pixCount);
+        var sizeMB = Math.round(pixCount * bands / 1000000);
+        //console.log("export size: " + sizeMB + " MB");
+        return sizeMB;
+    }
+
+    function _getPunktskyExportSize(area, pointDensity) {
+        var _factor = 5;
+        var _tileCount = area / maptileArea[1000];
+        return Math.round(pointDensity * _factor * _tileCount);
+    }
+
+    function _isValidEmail(email) {
+        if (!email)
+            return false;
+
+        var e = email.indexOf(",") > -1 ? email.split(",") : [email];
+        for (var i = 0; i < e.length; i++) {
+            var adr = e[i].trim().toLowerCase();
+            var adrOk = 
+            adr.length >= 6 && 
+            adr.indexOf('@') > -1 && 
+            adr.indexOf('.') > -1 && 
+            adr.indexOf(' ') == -1 &&
+            adr.indexOf('æ') == -1 && 
+            adr.indexOf('ø') == -1 && 
+            adr.indexOf('å') == -1;
+            if (!adrOk)
+                return false;
+        }
+        return true;
+    }
+
+    function startExport(btn) {
+                     
+        var description = $('#exportComment').val();
+        if (!description) {
+            alert(map.lang("exportNameNotSpecified"));
+            return;
+        }        
+        
+            
+                var userEmail = $('#exportCopyEmail').val();
+                if (!_isValidEmail(userEmail)) {
+                    alert(map.lang("exportEmailNotSpecified"));
+                    return;
+                }  
+            
+        
+        var copyEmail = $('#exportCopyEmail').val();
+        /*if (!_isValidEmail(copyEmail)) {
+            alert(map.lang("exportEmailNotSpecified"));
+            return;
+        }*/
+
+        $(btn).prop('disabled', true);
+        $(btn).parent().prepend("<img src='" + webappPath + "Images/loading_small.gif' id='exportLoadingImg'/>");
+
+        var _username = '';  // empty for not logged in users
+        var _password = strDecode(docCookies.getItem("token"));                        
+
+        if (!_password && _username != '') {
+            alert(map.lang("sessionExpiredMsg"));
+            //alert(_username + "\n" + _password + "\n" + docCookies.getItem("token"));
+            //alert(document.cookie);
+            var logoutUrl = location.href;
+            var i = logoutUrl.indexOf("?");
+            if (i > -1)
+                logoutUrl = logoutUrl.substring(0, i);
+            logoutUrl += "User/Logout";         
+            location.href = logoutUrl;
+            return;
+        }         
+        
+        var _fileDivision = $('#divisionSelect').val()*1;        
+        var _mapsheetSize = _fileDivision == 1 ? $('#divisionMaptileSelect').val() : 0;
+        var _prjMerge = _fileDivision == 2 ? 1 : 0;
+        var _noDataValue =  $('#overrideNoDataCB').prop('checked') ? Math.round($('#noDataValue').val()) : null;
+        var _nhm = ($('#exportGridType').val() == 'nhm') ? 1 : ($('#exportGridType').val() == 'dted') ? 2 : 0;
+        var _isPunktsky = $('#exportProduct').val() == 'punktsky';
+        if (_isPunktsky) {
+            _nhm = 0;
+        }
+                        
+        var _isNHM = _nhm == 1;
+        var _isDTED = _nhm == 2;
+        var _resolution = _isNHM || _isDTED || _isPunktsky ? 0 : $('#resolutionSelect').val();      
+        var _projects = _isNHM ? $('#nhmDataset').val().join() : _isDTED ? $('#dtedDataset').val().join() : _getSortedProjects();       
+        var _outWkid = !_isDTED ? $('#coordSysSelect').val() : 0;
+        var _compMethod = _nhm < 2 && !_isPunktsky ? $('#compMethodSelect').val() : 0;
+        var _format = _isDTED ? 2 : $('#formatSelect').val()*1;
+        var _projectProduct = _nhm == 0 && !_isPunktsky && $.inArray(_format, formatRequiresProjectProduct) > -1 ? $('#projectProductSelect').val()*1 : 0; 
+
+        var request = {
+            username: _username,
+            password: _password,
+            copyEmail: copyEmail,
+            name: description,
+            coordInput: JSON.stringify(_getWKT(exportGeometry)),
+            inputWkid: map.map.spatialReference.wkid,
+            format: _format,
+            resolution: _resolution,
+            outputWkid: _outWkid,
+            projects: _projects,
+            projectProduct: _projectProduct,
+            compressionMethod: _compMethod,
+            mapsheetSize: _mapsheetSize,
+            projectMerge: _prjMerge,
+            nhm: _nhm,
+            noDataValue: _noDataValue,
+            subscription: subscriptionExport ? "1" : "0",
+            svfDirections: $('#skyviewfactorPanel').is(':visible') ? $('#svfDirections').val() : 0,
+            svfKernelSize: $('#skyviewfactorPanel').is(':visible') ? $('#svfKernelSize').val() : 0,
+            fillImage: 1
+        };
+        console.log(request);       
+
+        var content = { "request": JSON.stringify(request) };
+
+        require(["esri/request"], function (esriRequest) {                
+            var host = window.location.hostname;
+            var protocol = host.indexOf('localhost') > -1 || host.indexOf('osl-las') > -1 ? "http" : "https";  // force export request over https, because of password in URL
+            esriRequest({
+                url: protocol + '://' + host + serviceWebapp + '/REST/StartExport.ashx',
+                content: content,
+                handleAs: "json"
+            }).then(
+                function (response) {                    
+                    $('#exportLoadingImg').remove();
+                    $(btn).prop('disabled', false);
+                    if (response.Success) {
+                        $('#exportModal').modal('hide');
+                        map.setDrawMode();  // clear export area graphics
+                        map.removeSosiMapService();
+                            alert("Bestillingen er registrert (nr: " + response.JobID + ")");
+                    }
+                    else {                           
+                        console.log(response);
+                        alert("FEIL! " + response.Error);
+                    }
+                }, function (error) {
+                    console.log("Error: ", error.message);
+                    $('#exportLoadingImg').remove();
+                    $(btn).prop('disabled', false);
+                }
+            );
+        });  
+    }
+       
+
+    function _initSosiUpload() {
+        
+        var _sosiConvertService = '//hoydedata.no/arcgis/rest/services/ConvertSosi';        
+
+        $("#sosiUpload").change(function (e) {  // auto-upload SOSI
+            //console.log(e.target.value);
+            $('#sosiUploadSpinner').show();
+
+            var _formData = new FormData();         
+            var file = $('#sosiUpload')[0].files[0];
+            _formData.append('file', file);
+            _formData.append('f', 'pjson');
+
+            var requestHandle = esri.request({
+                url: _sosiConvertService + '/GPServer/uploads/upload?token=' + lasToken,
+                form: _formData,
+                usePost: true,
+                load: function (res) {
+                    //console.log(res);
+                    if (res.success) {
+                        console.log("Uploaded file ID: " + res.item.itemID);
+                        require(["esri/tasks/Geoprocessor", "esri/tasks/DataFile"], function (Geoprocessor, DataFile) {
+
+                            var _gpService = _sosiConvertService + '/GPServer/ConvertSosi?token=' + lasToken;                            
+                            var _gp = new Geoprocessor(_gpService);
+
+                            var dataFile = new DataFile();
+                            dataFile.itemID = res.item.itemID;
+                            //console.log(dataFile);
+                            var convertSosiGPparams = { "in_file": dataFile };
+                            console.log("wait a little...");
+                            setTimeout(function () {  // because the upload/tool needs a little time...
+                                _gp.submitJob(convertSosiGPparams,
+                                    function (jobInfo) {
+                                        console.log("SOSI GP-service completed: " + jobInfo.jobStatus);
+                                        if (jobInfo.jobStatus == "esriJobSucceeded") {
+                                            var _mapService = _sosiConvertService + "/MapServer/jobs/" + jobInfo.jobId + "?token=" + lasToken;
+                                            map.addSosiMapService(_mapService, function () {
+                                                $('#sosiUploadSpinner').hide();
+                                                updateProjects();
+                                            });
+                                        }
+                                        else {
+                                            var userMsg = null;
+                                            for (var m = 0; m < jobInfo.messages.length; m++) {
+                                                var desc = jobInfo.messages[m].description;
+                                                if (desc.indexOf("UserMsg: ") > -1) {
+                                                    userMsg = desc.substring(9, desc.length);
+                                                    break;
+                                                }
+                                            }                                            
+                                            $('#sosiUploadSpinner').hide();
+                                            alert(userMsg ? userMsg : "SOSI import error");
+                                        }
+                                    },
+                                    function (jobInfo) {  // status
+                                    },
+                                    function (err) {
+                                        console.log(err);
+                                        $('#sosiUploadSpinner').hide();
+                                    }
+                                );
+                            }, 5000);
+                        });
+                    }
+                    else {
+                        console.log(res);
+                        alert("SOSI upload error");
+                        $('#sosiUploadSpinner').hide();
+                    }
+                },
+                error: function (err) {
+                    $('#sosiUploadSpinner').hide();
+                    console.log("SOSI upload failed");            
+                }
+            });
+
+        });
+                
+    }
+
+    function showExportListModal() {       
+        $('#exportListPanel').html('<img src="' + webappPath + 'Images/loading.gif"/>');
+        $('#exportListModal').modal('show');             
+        $.ajax({
+            url: '/LaserInnsyn/Export/GetExportList',
+            data: $('#exportListTable').serialize(),
+            success: function (viewData) {
+                $('#exportListPanel').html(viewData);  // populate partial view
+                _translatePartial("exportListPanel");
+            }
+        });
+    }
+
+</script>
+
+  
+    <div style="height: 30px; float: left;">
+        <ul class="nav nav-tabs" style="width: 300px">
+            <li class="active"><a href="#exportTab" data-toggle="tab" data-localization-token="exportTab">Eksport</a></li>
+            <li><a href="#downloadTab" data-toggle="tab" data-localization-token="downloadTab">Landsdekkende</a></li>
+        </ul>
+    </div>
+
+    <div style="height: 100%; padding-top: 30px;">
+    <div style="min-height: 100%; max-height: 100%; overflow-x: hidden; overflow-y: auto;">
+
+    <div class="tab-content">
+        <div class="tab-pane active" id="exportTab">
+
+            <div data-localization-token="exportDescription" class="exportDesc">Egendefinert eksport av høydedata</div>
+
+            <!-- Velg område -->
+            <label data-localization-token="exportSelectAreaType">Velg område</label>    
+            <div>
+                <div id="areaSelectContainer" style="float: left; width: 100%">
+                    <select id="typeSelect" onchange="setExportAreaType(this.value)" style="display: none;">
+                        <option value="extent" data-localization-token="exportAreaMapExtent">Gjeldende kartutsnitt</option>
+                        <option value="rectangle" data-localization-token="exportAreaRectangle">Tegn rektangel</option>
+                        <option value="polygon" data-localization-token="exportAreaPolygon">Tegn polygon</option>
+                        <option value="linebuffer" data-localization-token="exportAreaLineBuffer">Tegn linje med buffer</option>
+                        <option value="pointbuffer" data-localization-token="exportAreaPointBuffer">Tegn punkt med buffer</option>                    
+                        <option value="kommune" data-localization-token="exportAreaKommune">Velg kommune</option>    
+                        <!--<option value="maptile" data-localization-token="exportAreaMapTile"></option>-->
+                        <option value="sosi" data-localization-token="exportAreaSOSI">SOSI-fil</option>
+                    </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Gjeldende kartutsnitt" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Gjeldende kartutsnitt</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="extent"> Gjeldende kartutsnitt</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="rectangle"> Tegn rektangel</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="polygon"> Tegn polygon</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="linebuffer"> Tegn linje med buffer</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="pointbuffer"> Tegn punkt med buffer</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="kommune"> Velg kommune</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="sosi"> SOSI-fil</label></a></li></ul></div>
+                </div>
+            
+                <div id="selectMaptilePanel" style="display: none; float: right; width: 50%;">
+                    <select id="selectMaptileSelect" style="display: none;"> <!-- NB! values are layerIndex in AGS MapServer -->
+                        <option value="0">1:500</option>
+                        <option value="1">1:1000</option>
+                        <option value="2">1:2000</option>
+                        <option value="3">1:5000</option>
+                        <option value="4">1:10000</option>
+                        <option value="5">1:20000</option>
+                        <option value="6">15 km</option>
+                    </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="1:500" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">1:500</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="0"> 1:500</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="1"> 1:1000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="2"> 1:2000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="3"> 1:5000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="4"> 1:10000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="5"> 1:20000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="6"> 15 km</label></a></li></ul></div>
+                </div>           
+            
+                <div id="sosiUploadPanel" style="display: none; float: right; width: 50%;">                    
+                    <div class="btn btn-default fileinput-button" style="width: 100%">                 
+                        <span data-localization-token="uploadSosiBtn">Last opp fil..</span>      
+                        <span id="sosiUploadSpinner" style="display: none;"> <img src="/LaserInnsyn/Images/loading_small.gif"></span>           
+                        <input id="sosiUpload" type="file" name="file">
+                    </div>   
+                </div>
+
+                <div id="bufferDistancePanel" style="display: none; float: right; width: 30%;">
+                    <input type="text" id="bufferDistance" class="form-control" value="1000">
+                </div>
+            </div>
+
+
+            <!-- Velg produkt -->
+            <label data-localization-token="exportProduct">Velg produkt</label>
+            <select id="exportProduct" onchange="setExportProduct(this.value)" style="display: none;">
+                <option selected="" disabled="" value="hidden" data-localization-token="userMsgDefChooseValue">Velg</option>
+                <option value="punktsky" data-localization-token="exportProductPunktsky">Punktsky</option>
+                <option value="grid" data-localization-token="exportProductGrid">Grid</option>
+            </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Velg" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Velg</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="disabled active" style="display: none;"><a tabindex="-1"><label class="radio"><input type="radio" value="hidden" disabled=""> Velg</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="punktsky"> Punktsky</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="grid"> Grid</label></a></li></ul></div>
+                
+            <!-- Velg type grid eksport -->
+            <div id="gridTypePanel" style="display: none;">
+                <label data-localization-token="exportGridType">Velg type grid</label>
+                <select id="exportGridType" onchange="setExportGridType(this.value)" style="display: none;">
+                    <option selected="" disabled="" value="hidden" data-localization-token="userMsgDefChooseValue">Velg</option>
+                    <option value="project" data-localization-token="exportTypeProject">Prosjekt</option>
+                    <option value="nhm" data-localization-token="exportTypeNHM">Nasjonal høydemodell</option>
+                    <option value="dted" data-localization-token="exportTypeDTED">Nasjonal høydemodell - DTED</option>
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Velg" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Velg</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="disabled active" style="display: none;"><a tabindex="-1"><label class="radio"><input type="radio" value="hidden" disabled=""> Velg</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="project"> Prosjekt</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="nhm"> Nasjonal høydemodell</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="dted"> Nasjonal høydemodell - DTED</label></a></li></ul></div>
+            </div>
+
+            <!-- NHM eksport -->
+            <div id="nhmSelectPanel" style="display: none;">
+                <label data-localization-token="exportSelectNHMDataset">Velg datasett</label>
+                <select id="nhmDataset" multiple="multiple" onchange="limitNHMDivision()" style="display: none;">
+                    <option value="dtm10" data-res="10" data-localization-token="dtm10">DTM 10</option>
+                    <option value="dtm50" data-res="50" data-localization-token="dtm50">DTM 50</option>
+                    <option value="dom10" data-res="10" data-localization-token="dom10">DOM 10</option>
+                    <option value="dom50" data-res="50" data-localization-token="dom50">DOM 50</option>
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Ingen valgt" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Ingen valgt</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dtm10"> DTM 10</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dtm50"> DTM 50</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dom10"> DOM 10</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dom50"> DOM 50</label></a></li></ul></div>
+            </div>
+
+            <!-- NHM DTED eksport -->
+            <div id="dtedSelectPanel" style="display: none;">
+                <label data-localization-token="exportSelectDtedDataset">Velg datasett</label>
+                <select id="dtedDataset" multiple="multiple" style="display: none;">
+                    <option value="dtm900" data-res="900" data-localization-token="dtedDTM0">DTM 900</option>
+                    <option value="dtm90" data-res="90" data-localization-token="dtedDTM1">DTM 90</option>
+                    <option value="dtm30" data-res="30" data-localization-token="dtedDTM2">DTM 30</option>
+                    <option value="dom900" data-res="900" data-localization-token="dtedDOM0">DOM 900</option>
+                    <option value="dom90" data-res="90" data-localization-token="dtedDOM1">DOM 90</option>
+                    <option value="dom30" data-res="30" data-localization-token="dtedDOM2">DOM 30</option>
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Ingen valgt" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Ingen valgt</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dtm900"> DTM 900</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dtm90"> DTM 90</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dtm30"> DTM 30</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dom900"> DOM 900</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dom90"> DOM 90</label></a></li><li><a tabindex="0"><label class="checkbox"><input type="checkbox" value="dom30"> DOM 30</label></a></li></ul></div>
+            </div>
+        
+            <!-- Prosjekteksport -->
+            <div id="projectSelectPanel" style="display: none;">            
+                <label data-localization-token="exportSelectProject">Velg prosjekt</label>
+                <div id="noProjectsInfo" style="color: #800000; font-size: 12px; font-weight: bold; display: none;" data-localization-token="exportNoAvailableProjectsText">Ingen prosjekter er tilgjengelig i valgt område. Vennligst velgt et annet eksportområde.</div>
+                <select id="projectSelect" multiple="multiple" style="display: none;"></select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Tilgjengelige prosjekt" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Tilgjengelige prosjekt</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"></ul></div>
+            </div>
+
+            <div id="skyviewfactorPanel" style="display: none;">
+                <label data-localization-token="exportSkyviewfactorKernelSize">Kjernestørrelse</label>
+                <select id="svfKernelSize" style="display: none;">
+                    <option value="5">5x5</option>
+                    <option value="7">7x7</option>
+                    <option value="9" selected="">9x9</option>
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="9x9" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">9x9</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li><a tabindex="0"><label class="radio"><input type="radio" value="5"> 5x5</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="7"> 7x7</label></a></li><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="9"> 9x9</label></a></li></ul></div>
+                <label data-localization-token="exportSkyviewfactorDirections">Antall retninger</label>
+                <select id="svfDirections" style="display: none;">
+                    <option value="4">4</option>
+                    <option value="8" selected="">8</option>
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="8" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">8</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li><a tabindex="0"><label class="radio"><input type="radio" value="4"> 4</label></a></li><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="8"> 8</label></a></li></ul></div>
+            </div>
+
+            <div id="projectProductPanel" style="display: none;">
+                <label data-localization-token="exportProjectProduct">Velg datasett</label>
+                <select id="projectProductSelect" style="display: none;">
+                    <option value="1" data-localization-token="exportProjectProductDTM">DTM</option>
+                    <option value="2" data-localization-token="exportProjectProductDOM">DOM</option>
+                    <option value="3" data-localization-token="exportProjectProductDTMDOM">DTM og DOM</option>
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="DTM" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">DTM</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="1"> DTM</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="2"> DOM</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="3"> DTM og DOM</label></a></li></ul></div>
+            </div>
+
+            <div id="resolutionPanel" style="display: none;">
+                <label data-localization-token="exportSelectResolution">Oppløsning</label>
+                <select id="resolutionSelect" style="display: none;">
+                    <option value="0" data-localization-token="exportAsDataset">Som datasett</option>
+                    <option value="1">1 m</option>
+                    <option value="10">10 m</option>
+                    <option value="50">50 m</option>            
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Som datasett" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Som datasett</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="0"> Som datasett</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="1"> 1 m</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="10"> 10 m</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="50"> 50 m</label></a></li></ul></div>
+            </div>
+
+            <div id="formatPanel" style="display: none;">
+                <table>
+                    <tbody><tr>
+                        <td>
+                            <label data-localization-token="exportSelectFormat">Filformat</label>
+                            <select id="formatSelect" style="display: none;">
+                            </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="None selected" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">None selected</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"></ul></div>
+                        </td>
+                        <td>
+                            <label data-localization-token="exportSelectCompressonMethod">Kompresjonsmetode</label>
+                            <select id="compMethodSelect" style="display: none;">
+                                <option value="0" data-localization-token="exportNoneCompression">Ingen</option>
+                                <option value="1">LZ77</option>
+                                <option value="2">LZW</option>
+                            </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Ingen" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Ingen</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="0"> Ingen</label></a></li><li class="disabled"><a tabindex="0"><label class="radio"><input type="radio" value="1" disabled=""> LZ77</label></a></li><li class="disabled"><a tabindex="0"><label class="radio"><input type="radio" value="2" disabled=""> LZW</label></a></li></ul></div>
+                        </td>
+                    </tr>
+                </tbody></table>
+            </div>
+
+            <div id="coordSysPanel" style="display: none;">
+                <label data-localization-token="exportSelectCoordSys">Koordinatsystem</label>
+                <select id="coordSysSelect" style="display: none;">
+                    <option value="0" data-localization-token="exportAsDataset">Som datasett</option>
+                    <option value="25832">UTM 32</option>
+                    <option value="25833">UTM 33</option>
+                    <option value="25835">UTM 35</option>
+                    <optgroup label=""></optgroup>  <!-- NTM under her (dynamisk) -->                            
+                </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Som datasett" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Som datasett</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="0"> Som datasett</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="25832"> UTM 32</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="25833"> UTM 33</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="25835"> UTM 35</label></a></li><li class="multiselect-item multiselect-group"><label></label></li></ul></div>
+            </div>
+
+            <div id="fileDivisionPanel" style="display: none;">
+                <label data-localization-token="exportSelectDivision">Filoppdeling</label>          
+                <div>
+                    <div id="divisionSelectContainer" style="float: left; width: 100%">
+                        <select id="divisionSelect" onchange="setDivisionType(this.value)" style="display: none;">
+                            <option value="0" selected="" data-localization-token="exportAsDataset">Som datasett</option>
+                            <option value="1" data-localization-token="exportSelectDivisionMaptile" id="mapsheetOption">Kartblad</option>
+                            <option value="2" data-localization-token="exportSelectDivisionNone">Ingen oppdeling</option>                        
+                        </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="Som datasett" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">Som datasett</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="0"> Som datasett</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="1"> Kartblad</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="2"> Ingen oppdeling</label></a></li></ul></div>
+                    </div>
+
+                    <div id="divisionMaptilePanel" style="display: none; float: right; width: 50%;">
+                        <select id="divisionMaptileSelect" style="display: none;">
+                            <option value="1000">1:1000</option>
+                            <option value="2000">1:2000</option>
+                            <option value="5000">1:5000</option>
+                            <option value="10000">1:10000</option>
+                        </select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="1:1000" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">1:1000</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="active"><a tabindex="0"><label class="radio"><input type="radio" value="1000"> 1:1000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="2000"> 1:2000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="5000"> 1:5000</label></a></li><li><a tabindex="0"><label class="radio"><input type="radio" value="10000"> 1:10000</label></a></li></ul></div>
+                    </div>
+                </div>
+            </div>
+    
+            <div id="noDataPanel" style="display: none;">
+                <input type="checkbox" id="overrideNoDataCB" onclick="this.checked ? $('#noDataValuePanel').show() : $('#noDataValuePanel').hide()">
+                <label for="overrideNoDataCB" data-localization-token="exportNoDataValueLabel">Angi egendefinert NoData verdi</label>
+                <div id="noDataValuePanel" style="display: none;">
+                    <input type="text" value="-32767" id="noDataValue" class="form-control">
+                </div>
+            </div>
+    
+
+            <button id="finalizeButton" style="margin-top: 15px; width: 100%" class="btn btn-primary" onclick="openExportDlg(false)" type="button" data-localization-token="exportFinalizeButton" disabled="">Klargjør bestilling</button>
+               
+
+
+        </div>
+    
+        <div class="tab-pane" id="downloadTab">
+
+            <div data-localization-token="downloadDescription" class="exportDesc">Ferdigproduserte eksporter av landsdekkende terreng og overflatemodeller. Alle datasett gitt som EUREF89/UTM33 og med gjeldende geoide.</div>
+
+            <table style="width: 100%">
+                <tbody><tr><th data-localization-token="downloadProduct">Produkt</th><th></th><th data-localization-token="downloadTimestamp">Oppdatert</th></tr>
+                
+                        <tr><td colspan="3"><hr style="margin: 5px 0;"></td></tr>               
+                    <tr>
+                        <td style="width: 100%"><small><a href="/LaserInnsyn/Home/DownloadFile?filename=NHM_Metadata_20161031.zip">NHM Metadata</a></small></td>
+                        <td style="text-align:right; padding-right: 0px;"><small>18&nbsp;MB</small></td>
+                        <td style="text-align:right;"><small>31.10.2016</small></td>
+                    </tr>
+                        <tr><td colspan="3"><hr style="margin: 5px 0;"></td></tr>               
+                    <tr>
+                        <td style="width: 100%"><small><a href="/LaserInnsyn/Home/DownloadFile?filename=DTM10_20161018.zip">DTM10</a></small></td>
+                        <td style="text-align:right; padding-right: 0px;"><small>13055&nbsp;MB</small></td>
+                        <td style="text-align:right;"><small>18.10.2016</small></td>
+                    </tr>
+                    <tr>
+                        <td style="width: 100%"><small><a href="/LaserInnsyn/Home/DownloadFile?filename=DTM50_20161018.zip">DTM50</a></small></td>
+                        <td style="text-align:right; padding-right: 0px;"><small>380&nbsp;MB</small></td>
+                        <td style="text-align:right;"><small>19.10.2016</small></td>
+                    </tr>
+                    <tr>
+                        <td style="width: 100%"><small><a href="/LaserInnsyn/Home/DownloadFile?filename=DOM10_20161018.zip">DOM10</a></small></td>
+                        <td style="text-align:right; padding-right: 0px;"><small>3996&nbsp;MB</small></td>
+                        <td style="text-align:right;"><small>18.10.2016</small></td>
+                    </tr>
+                    <tr>
+                        <td style="width: 100%"><small><a href="/LaserInnsyn/Home/DownloadFile?filename=DOM50_20161018.zip">DOM50</a></small></td>
+                        <td style="text-align:right; padding-right: 0px;"><small>168&nbsp;MB</small></td>
+                        <td style="text-align:right;"><small>18.10.2016</small></td>
+                    </tr>
+                <tr><td colspan="3"><hr style="margin: 5px 0;"></td></tr>
+            </tbody></table>
+
+            <div style="padding-top: 10px;">
+                <img src="/LaserInnsyn/Images/NHM1_gruppering.png">
+            </div>
+
+        </div>
+        </div>
+     </div>
+  
+</div>
+
+ </div>
+</div><div class="toggler">
+<span data-localization-token="leftSidePanelToggleLabel">Nedlasting</span>
+</div>
+</div>
