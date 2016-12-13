@@ -18,14 +18,6 @@ A library for downloading data from Kartverket
 from dataset_downloader import DatasetDownloader
 
 def login(username, password):
-    dl = DatasetDownloader(username, password)
-    # dl.login(username, passwor)
-    # dl.get_datasets()
-    
-    for key in dl.datasets:
-        print key, dl.datasets[key] 
-        # print d[k].get_name()
-        # print k.get_name()
-    
-
-login("Kjartanb", "kjartan1")
+    dl = DatasetDownloader()
+    # dl.login(username, password)
+    print dl.get_datasets()

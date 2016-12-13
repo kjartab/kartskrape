@@ -1,7 +1,6 @@
+# -*- coding: utf-8 -*-
 import requests
 from bs4 import BeautifulSoup
-from kartverket_config import config
-# from kartverket_url import
 
 class KartverketApiHelper(object):
 
@@ -9,7 +8,10 @@ class KartverketApiHelper(object):
         
         self.username = username
         self.password = password
-        self.url = config['url']
+        self.url = {
+            'authenticate' : 'http://data.kartverket.no/download/content/velkommen?destination=node/134',
+            'login_page' : 'http://data.kartverket.no/download/content/geodataprodukter'
+        }
 
     def get_login_payload(self, username, password, form_build_id):
         return {
@@ -49,9 +51,6 @@ class KartverketApiHelper(object):
             return soup.find('form').get('action')
         except:
             return None
-
-    def verify_login_response(self, response):
-        print response
 
     def login(self):
         response = self.get_login_page()        
@@ -106,9 +105,3 @@ class KartverketApiHelper(object):
 
     def create_session(self):
         return requests.Session()
-
-
-
-if __name__ == "__main__":
-    kapi = KartverketApi("Kjartanb", "kjartan1")
-    kapi.login()

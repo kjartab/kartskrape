@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 import requests
 from bs4 import BeautifulSoup
-from kartverket_config import config
+baseurl = "http://data.kartverket.no"
+
 
 class KartverketApiHelper(object):
 
@@ -8,7 +10,10 @@ class KartverketApiHelper(object):
         
         self.username = username
         self.password = password
-        self.url = config['url']
+        self.url = {
+            'authenticate' : 'http://data.kartverket.no/download/content/velkommen?destination=node/134',
+            'login_page' : 'http://data.kartverket.no/download/content/geodataprodukter'
+        }
 
     def get_login_payload(self, username, password, form_build_id):
         return {
@@ -49,8 +54,22 @@ class KartverketApiHelper(object):
         except:
             return None
 
-    def verify_login_response(self, response):
-        print response
+    def build_datasets():
+        next_link = "/download/content/geodataprodukter?korttype=All&aktualitet=All&datastruktur=All&dataskema=All"
+        datasets = []
+
+        while next_link:
+            url = baseurl + next_link
+            res = requests.get(url)
+            soup = BeautifulSoup(res.text, 'html.parser')
+
+            pager_next = soup.find('li', {'class': 'pager-next'})
+            datasets.append(parse_datasets(res))
+            if pager_next:
+                next_link = pager_next.find('a')['href']
+            else:
+                next_link = None
+            print next_link
 
     def login(self):
         response = self.get_login_page()        
@@ -65,6 +84,8 @@ class KartverketApiHelper(object):
             raise Exception("no form build id found")
 
     def get(self, url, headers=None):
+        print url
+        
         if not headers:
             headers = {            
                 'Cookie' : self.get_auth_cookie()
@@ -93,7 +114,7 @@ class KartverketApiHelper(object):
             headers['Cookie'] = self.get_auth_cookie()
 
         return self.session.post(url, data=payload, headers=headers)
-
+    
     def download_file(self, data_dir, url):
         local_filename = data_dir + '/' + url.split('/')[-1]
         r = self.session.get(url, stream=True)
@@ -105,7 +126,3 @@ class KartverketApiHelper(object):
 
     def create_session(self):
         return requests.Session()
-
-if __name__ == "__main__":
-    kapi = KartverketApi("Kjartanb", "kjartan1")
-    kapi.login()

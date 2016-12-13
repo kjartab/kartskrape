@@ -1,0 +1,12 @@
+README.rst
+setup.py
+kartskrape/__init__.py
+kartskrape/dataset.py
+kartskrape/dataset_config.py
+kartskrape/dataset_downloader.py
+kartskrape/kartverket_api.py
+kartskrape.egg-info/PKG-INFO
+kartskrape.egg-info/SOURCES.txt
+kartskrape.egg-info/dependency_links.txt
+kartskrape.egg-info/requires.txt
+kartskrape.egg-info/top_level.txt
