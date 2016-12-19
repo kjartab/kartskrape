@@ -7,7 +7,7 @@ class OrderReceipt(object):
         self.dataset = dataset
         self.files = files
         self.html = html_result
-        self.expires = datetime.now() + timedelta(hours=23, minutes=45)
+        # self.expires = datetime.now() + timedelta(hours=23, minutes=45)
 
     def download_links(self):
         return [self.dataset.download_path + '/' + f for f in self.files]
