@@ -5,6 +5,7 @@ import os
 import requests
 from kartverket_api import KartverketApiHelper
 from dataset import Dataset
+from receipt import OrderReceipt
 import selection
 import json
 from config import urls
@@ -31,9 +32,9 @@ class DatasetDownloader(object):
         form = self.bestilling_forms.get_confirm_form(form_build_id, form_token)
         return self.kapi.post(urls.kartverket["download-checkout"] + checkout_id + "/checkout", form)
 
-    def order(self, dataset):
+    def order(self, dataset, limit=None):
         res = self.kapi.get(dataset.url)
-
+        
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
         form_id = self.kapi.get_form_id(res)
@@ -43,12 +44,19 @@ class DatasetDownloader(object):
 
         max_files = 50
         res = None
-        for i in xrange(0, len(files), max_files):
+        n = len(files)
+        if limit:
+            max_files = limit
+            n = 1
+
+
+        for i in xrange(0, n, max_files):
             files[i:i+max_files]
             res = self.post_files_bestilling(files[i:i+max_files], product_id, form_token, form_id,  dataset.url)
         
-        res = self.kapi.get(urls.kartverket["download-checkout"])
-        return res
+        return files
+        # res = self.kapi.get(urls.kartverket["download-checkout"])
+        # return res
 
     def get_select_for_dataset(self, res):
         line = next(line for line in res.text.split('\n') if
@@ -93,16 +101,32 @@ class DatasetDownloader(object):
         return res
 
 
-    def download(self, dataset, product_id):
-        data_selection = dataset.get_product_files(product_id)
-        product_base_url = dataset.get_product_download_base_url(product_id)
-        for file in data_selection:
-            self.kapi.download_file("data", product_base_url + "/" + file)
+    def download_files(self, dataset, files):
+        for file in files:
+            self.kapi.download_file(dataset.download_path + "/" + file)
 
+# http://data.kartverket.no/download/system/files/vegdata/elveg/landsdekkende/Vegdata_Norge_Geometri_UTM33_SOSI.zip
+# http://data.kartverket.no/download/system/files/sjodata/dybdedata/Sjodata_16_Sor-Trondelag_UTM33_dybdedata_SHAPE.zip
+# http://data.kartverket.no/download/system/files/terrengdata/10m/utm32/Terrengdata_7106_2_UTM32_10m_DEM.zip
+# http://data.kartverket.no/download/system/files/matrikkeldata/adresser/Adressedata_3_Oslo_UTM33_CSV.zip
 
-    def order_dataset(self, dataset):
-        res = self.order(dataset)
-        self.post_fortsett_bestilling(res)
+    # def order_dataset(self, dataset, limit=None):
+    #     files = self.order(dataset, limit)
+    #     res = self.kapi.get(urls.kartverket["download-checkout"])
+    #     self.post_fortsett_bestilling(res)
+    #     self.download(dataset, files)
+
+    def order_dataset(self, dataset, limit=None):
+        files = self.order(dataset, limit)
+        html_res = self.kapi.get(urls.kartverket["download-checkout"])
+        html_res = self.post_fortsett_bestilling(html_res)
+        return OrderReceipt(dataset, files, html_res)
+
+    def download(self, dataset):
+        order_receipt = self.order_dataset(dataset, limit=1)
+        for link in order_receipt.download_links():            
+            self.kapi.download_file(link)
+        # self.download_files(dataset, files)
 
     def load_datasets(self):
         datasets = dict()
@@ -114,6 +138,7 @@ class DatasetDownloader(object):
 
 if __name__ == '__main__':
     dl = DatasetDownloader("Kjartanb", "kjartan1")
-    dl.order_dataset(dl.datasets['offisielle-adresser-utm33-csv'])
+    dl.download(dl.datasets['offisielle-adresser-utm33-csv'])
+
 
 

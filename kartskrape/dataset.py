@@ -6,4 +6,4 @@ class Dataset(object):
     def __init__(self, datasetid, name):
         self.id = datasetid
         self.name = name
-        self.url =  urls.kartverket["download-content"] + self.datasetid
+        self.url =  urls.kartverket["download-content"] + self.id

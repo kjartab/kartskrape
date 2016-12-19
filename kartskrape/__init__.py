@@ -26,6 +26,5 @@ def login(username, password):
         print key, dl.datasets[key] 
         # print d[k].get_name()
         # print k.get_name()
-    
 
-login("Kjartanb", "kjartan1")
+    

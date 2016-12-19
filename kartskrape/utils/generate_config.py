@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import re
 import yaml
 import json
+from ..dataset_downloader import DatasetDownloader
 
 baseurl = "http://data.kartverket.no"
 
@@ -24,8 +25,16 @@ def build_datasets(filter=[]):
             next_link = pager_next.find('a')['href']
         else:
             next_link = None
+
+    for d in datasets:
+    add_download_directory([Dataset(d) for d in datasets])
     return datasets
 
+def add_download_directory(datasets):
+    dl = DatasetDownloader("Kjartanb", "kjartan1")
+    for dataset in datasets:
+        d = dl.order_dataset(dataset, limit=1)
+        
 
 def parse_datasets(res):
     soup = BeautifulSoup(res.text, 'html.parser')
@@ -92,13 +101,7 @@ datasets = build_datasets(filter=[
     'N5000 Kartdata'
     ] )
 
+
+
 with open('config/datasets.yaml', 'w') as fp:
     yaml.safe_dump(datasets, stream=fp, encoding='utf-8', allow_unicode=True)
-
-# selections = dict()
-# for d in datasets:
-#     sel_name = d['selection']['service_name']
-#     if sel_name and sel_name not in selections:
-#         file = get_selection_file(sel_name)
-#         selections[sel_name] = file
-#         save_selection_file('config/selections', sel_name + '.json', file)
