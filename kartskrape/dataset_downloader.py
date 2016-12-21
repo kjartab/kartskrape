@@ -3,6 +3,7 @@
 import yaml
 import os
 import requests
+from utils import log
 from kartverket_api import KartverketApiHelper
 from dataset import Dataset
 from receipt import OrderReceipt
@@ -34,6 +35,7 @@ class DatasetDownloader(object):
 
     def order(self, dataset, limit=None):
         res = self.kapi.get(dataset.url)
+        log.html(res)
         
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
@@ -49,14 +51,12 @@ class DatasetDownloader(object):
             max_files = limit
             n = 1
 
-
         for i in xrange(0, n, max_files):
             files[i:i+max_files]
             res = self.post_files_bestilling(files[i:i+max_files], product_id, form_token, form_id,  dataset.url)
         
         return files
-        # res = self.kapi.get(urls.kartverket["download-checkout"])
-        # return res
+
 
     def get_select_for_dataset(self, res):
         line = next(line for line in res.text.split('\n') if
@@ -119,7 +119,9 @@ class DatasetDownloader(object):
     def order_dataset(self, dataset, limit=None):
         files = self.order(dataset, limit)
         html_res = self.kapi.get(urls.kartverket["download-checkout"])
+        log.html(html_res)
         html_res = self.post_fortsett_bestilling(html_res)
+        log.html(html_res)
         return OrderReceipt(dataset, files, html_res)
 
     def download(self, dataset):
@@ -138,7 +140,10 @@ class DatasetDownloader(object):
 
 if __name__ == '__main__':
     dl = DatasetDownloader("Kjartanb", "kjartan1")
-    dl.download(dl.datasets['offisielle-adresser-utm33-csv'])
+    # dl.download(dl.datasets['sj%C3%B8-terrengmodell-25m-utm33'])
+
+    dl.download(dl.datasets['n50-kartdata-utm-33-kommunevis-inndeling'])
 
 
+    # dl.download(dl.datasets['offisielle-adresser-utm33-csv'])
 

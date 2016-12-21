@@ -36,10 +36,8 @@ def build_file_names(selection):
     if selection_file:
         for f in selection_file['features']:
             fname = f['properties']['n']
-            fid = f['id']
-
-            files.append(make_file_name(service_layer, fid, fname, selection_details, dataformat))    
-
+            fid = f.get('id')
+            files.append(make_file_name(service_layer, fid, fname, selection_details, dataformat))
         return files
     
     filename = None
@@ -53,7 +51,12 @@ def build_file_names(selection):
     return filename
 
 def make_file_name(service_layer, fid, fname, selection_details, dataformat):
-    filename =  service_layer + u'_' + str(fid) + u'_' + fname +  selection_details+ '_' + dataformat +'.zip'
-    filename.replace(u'ø', u'o').replace(u'Ø',u'O').replace(' ', '_')
+    filename = service_layer
+    if fid:
+        filename +=  u'_' + str(fid) 
+    filename += u'_' + fname +  selection_details + '_' + dataformat +'.zip'
+    filename = filename.replace(u'ø', u'o').replace(u'Ø',u'O')
+    filename = filename.replace(u'æ', u'e').replace(u'Æ',u'E')
+    filename = filename.replace(u'å', u'a').replace(u'Å',u'A').replace(' ', '_')
     return filename
  

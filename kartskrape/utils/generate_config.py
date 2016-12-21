@@ -4,7 +4,8 @@ from bs4 import BeautifulSoup
 import re
 import yaml
 import json
-from ..dataset_downloader import DatasetDownloader
+from dataset import Dataset
+from dataset_downloader import DatasetDownloader
 
 baseurl = "http://data.kartverket.no"
 
@@ -26,7 +27,6 @@ def build_datasets(filter=[]):
         else:
             next_link = None
 
-    for d in datasets:
     add_download_directory([Dataset(d) for d in datasets])
     return datasets
 
