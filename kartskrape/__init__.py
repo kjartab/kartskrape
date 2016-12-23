@@ -27,10 +27,10 @@ def print_datasets():
         print dataset.id
 
 
-def download_dataset(username, password, datasetname, download_directory=None):
-    dl = DatasetDownloader(username, password, download_directory=download_directory)
+def download_dataset(username, password, datasetname, download_directory):
+    dl = DatasetDownloader(username, password)
     dsets = get_datasets()
-    return dl.download(dsets[datasetname])
+    return dl.download(dsets[datasetname], download_directory)
 
 
 

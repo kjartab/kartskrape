@@ -115,8 +115,8 @@ class DatasetDownloader(object):
         html_res, order_id = self.post_fortsett_bestilling(html_res)
         return OrderReceipt(order_id, dataset, files, html_res)
 
-    def download(self, dataset):
+    def download(self, dataset, download_directory):
         order_receipt = self.order_dataset(dataset)
         for link in order_receipt.download_links():
-            file_name, path = self.kapi.download_file(link)
+            file_name, path = self.kapi.download_file(link, download_directory)
             print file_name, path

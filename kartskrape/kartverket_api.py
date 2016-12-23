@@ -2,7 +2,7 @@
 from utils import log
 import requests
 from bs4 import BeautifulSoup
-import os
+import os   
 baseurl = "http://data.kartverket.no"
 
 
@@ -118,11 +118,10 @@ class KartverketApiHelper(object):
 
         return self.session.post(url, data=payload, headers=headers)
     
-    def download_file(self, url):
+    def download_file(self, url. download_directory):
         file_name = url.split('/')[-1]
-
-        path = os.path.dirname(__file__) + "/data/"  
-        local_filename = path + url.split('/')[-1]
+        
+        local_filename = download_directory + url.split('/')[-1]
         r = self.session.get(url, stream=True)
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024): 
