@@ -22,7 +22,6 @@ class DatasetDownloader(object):
     def login(self, username, password):
         self.kapi = KartverketApiHelper(username, password)
         res = self.kapi.login()
-        log.html(res, filename="login")
 
     def setup_data_dir(self, data_dir):
         if not data_dir:
@@ -114,7 +113,6 @@ class DatasetDownloader(object):
         files = self.order(dataset, limit)
         html_res = self.kapi.get(urls.kartverket["download-checkout"])
         html_res, order_id = self.post_fortsett_bestilling(html_res)
-        log.html(html_res)
         return OrderReceipt(order_id, dataset, files, html_res)
 
     def download(self, dataset):
