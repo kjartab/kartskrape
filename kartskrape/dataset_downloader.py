@@ -3,26 +3,30 @@
 import yaml
 import os
 import requests
+import datasets
 from utils import log
 from kartverket_api import KartverketApiHelper
-from dataset import Dataset
-from receipt import OrderReceipt
+from models.dataset import Dataset
+from models.receipt import OrderReceipt
 import selection
 import json
 from config import urls
 
 class DatasetDownloader(object):
 
-    def __init__(self, username, password):
-        self.data_dir = self.setup_data_dir('data')
-        self.datasets = self.load_datasets()
-        self.login(username, password)
+    def __init__(self, username, password, download_directory=None):
+        self.data_dir = self.setup_data_dir(download_directory)
+        self.datasets = datasets.load()
+        res = self.login(username, password)
 
     def login(self, username, password):
         self.kapi = KartverketApiHelper(username, password)
-        self.kapi.login()
+        res = self.kapi.login()
+        log.html(res, filename="login")
 
     def setup_data_dir(self, data_dir):
+        if not data_dir:
+            data_dir = 'data'
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
         return data_dir
@@ -35,7 +39,7 @@ class DatasetDownloader(object):
 
     def order(self, dataset, limit=None):
         res = self.kapi.get(dataset.url)
-        log.html(res)
+
         
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
@@ -89,6 +93,7 @@ class DatasetDownloader(object):
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
         url = url + form_action
+        order_id = form_action.split('/')[3]
 
         payload = {
             'op' : 'Fortsett', 
@@ -98,52 +103,22 @@ class DatasetDownloader(object):
             }
 
         res = self.kapi.post(url, payload)
-        return res
+        return res, order_id
 
 
     def download_files(self, dataset, files):
         for file in files:
             self.kapi.download_file(dataset.download_path + "/" + file)
 
-# http://data.kartverket.no/download/system/files/vegdata/elveg/landsdekkende/Vegdata_Norge_Geometri_UTM33_SOSI.zip
-# http://data.kartverket.no/download/system/files/sjodata/dybdedata/Sjodata_16_Sor-Trondelag_UTM33_dybdedata_SHAPE.zip
-# http://data.kartverket.no/download/system/files/terrengdata/10m/utm32/Terrengdata_7106_2_UTM32_10m_DEM.zip
-# http://data.kartverket.no/download/system/files/matrikkeldata/adresser/Adressedata_3_Oslo_UTM33_CSV.zip
-
-    # def order_dataset(self, dataset, limit=None):
-    #     files = self.order(dataset, limit)
-    #     res = self.kapi.get(urls.kartverket["download-checkout"])
-    #     self.post_fortsett_bestilling(res)
-    #     self.download(dataset, files)
-
     def order_dataset(self, dataset, limit=None):
         files = self.order(dataset, limit)
         html_res = self.kapi.get(urls.kartverket["download-checkout"])
+        html_res, order_id = self.post_fortsett_bestilling(html_res)
         log.html(html_res)
-        html_res = self.post_fortsett_bestilling(html_res)
-        log.html(html_res)
-        return OrderReceipt(dataset, files, html_res)
+        return OrderReceipt(order_id, dataset, files, html_res)
 
     def download(self, dataset):
-        order_receipt = self.order_dataset(dataset, limit=1)
-        for link in order_receipt.download_links():            
-            self.kapi.download_file(link)
-        # self.download_files(dataset, files)
-
-    def load_datasets(self):
-        datasets = dict()
-        with open("config/datasets.yaml", "r") as f:
-            dsets = yaml.load(f)
-            for d in dsets:
-                datasets[d['id']] = Dataset(d['id'], d['name'])
-        return datasets
-
-if __name__ == '__main__':
-    dl = DatasetDownloader("Kjartanb", "kjartan1")
-    # dl.download(dl.datasets['sj%C3%B8-terrengmodell-25m-utm33'])
-
-    dl.download(dl.datasets['n50-kartdata-utm-33-kommunevis-inndeling'])
-
-
-    # dl.download(dl.datasets['offisielle-adresser-utm33-csv'])
-
+        order_receipt = self.order_dataset(dataset)
+        for link in order_receipt.download_links():
+            file_name, path = self.kapi.download_file(link)
+            print file_name, path

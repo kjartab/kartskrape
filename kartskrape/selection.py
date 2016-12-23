@@ -3,7 +3,6 @@ import requests
 import json
 
 def get_selection_file(name):
-    print name
     url = "http://www.norgeskart.no/json"
     if name.startswith('dtm-dekning'):
         res = name.split('-')
@@ -29,26 +28,21 @@ def build_file_names(selection):
     selection_type = selection['selection_type']
     selection_details = selection['selection_details']
     service_name = selection['service_name']
-    
-    selection_file = get_selection_file(service_name)
 
+    if not service_name:
+        return [selection_details]
+
+    selection_file = get_selection_file(service_name)
     files = []
     if selection_file:
-        for f in selection_file['features']:
+        for f in selection_file['features']:    
             fname = f['properties']['n']
             fid = f.get('id')
             files.append(make_file_name(service_layer, fid, fname, selection_details, dataformat))
         return files
     
-    filename = None
-    # if (dataformat == 'MrSID'):
-    #     filename = service_layer + "_" + filename.split(" ").join("_") + '_' + dataformat + '.sid';
-    # else:
-    #     filename = service_layer + "_" + filename.split(" ").join("_") + '_' + dataformat + '.zip';
-    if not filename:
-        return selection_details
+    return selection_details
 
-    return filename
 
 def make_file_name(service_layer, fid, fname, selection_details, dataformat):
     filename = service_layer

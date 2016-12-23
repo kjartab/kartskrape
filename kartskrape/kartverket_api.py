@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from utils import log
 import requests
 from bs4 import BeautifulSoup
+import os
 baseurl = "http://data.kartverket.no"
 
 
@@ -34,6 +36,8 @@ class KartverketApiHelper(object):
             return soup.find('input', {'name' : form_name}).get('value')
         except:
             return None
+
+
 
     def get_form_build_id(self, response):
         return self.get_input_val(response, 'form_build_id')
@@ -69,7 +73,7 @@ class KartverketApiHelper(object):
                 next_link = pager_next.find('a')['href']
             else:
                 next_link = None
-            print next_link
+        
 
     def login(self):
         response = self.get_login_page()        
@@ -80,12 +84,12 @@ class KartverketApiHelper(object):
             res = session.post(self.url['authenticate'], data = payload)
             self.cookies = session.cookies
             self.session = session
-        else:
-            raise Exception("no form build id found")
+            return self.get_login_page()
+
+        raise Exception("Login failed")
 
     def get(self, url, headers=None):
-        print url
-        
+
         if not headers:
             headers = {            
                 'Cookie' : self.get_auth_cookie()
@@ -101,7 +105,6 @@ class KartverketApiHelper(object):
         cookie_str = ""
         for k in res:
             cookie_str = k + "=" + res[k]
-            print cookie_str
         return cookie_str
 
     def post(self, url, payload, headers=None):
@@ -115,14 +118,17 @@ class KartverketApiHelper(object):
 
         return self.session.post(url, data=payload, headers=headers)
     
-    def download_file(self, data_dir, url):
-        local_filename = data_dir + '/' + url.split('/')[-1]
+    def download_file(self, url):
+        file_name = url.split('/')[-1]
+
+        path = os.path.dirname(__file__) + "/data/"  
+        local_filename = path + url.split('/')[-1]
         r = self.session.get(url, stream=True)
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024): 
                 if chunk:
                     f.write(chunk)
-        return local_filename
+        return file_name, local_filename
 
     def create_session(self):
         return requests.Session()

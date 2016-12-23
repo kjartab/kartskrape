@@ -15,16 +15,24 @@ A library for downloading data from Kartverket
 :license: Apache 2.0, see LICENSE for more details.
 """
 
+import datasets
 from dataset_downloader import DatasetDownloader
 
-def login(username, password):
-    dl = DatasetDownloader(username, password)
-    # dl.login(username, passwor)
-    # dl.get_datasets()
-    
-    for key in dl.datasets:
-        print key, dl.datasets[key] 
-        # print d[k].get_name()
-        # print k.get_name()
+def get_datasets():
+    return datasets.load()
 
-    
+def print_datasets():
+    dsets = get_datasets()
+    for key, dataset in dsets.items():
+        print dataset.id
+
+
+def download_dataset(username, password, datasetname, download_directory=None):
+    dl = DatasetDownloader(username, password, download_directory=download_directory)
+    dsets = get_datasets()
+    return dl.download(dsets[datasetname])
+
+
+
+
+

@@ -4,12 +4,15 @@ from bs4 import BeautifulSoup
 import re
 import yaml
 import json
-from dataset import Dataset
+import log
+import html
+from models.dataset import Dataset
 from dataset_downloader import DatasetDownloader
+
 
 baseurl = "http://data.kartverket.no"
 
-def build_datasets(filter=[]):
+def build_datasets(username, password, name_filter=[]):
     next_link = "/download/content/geodataprodukter?korttype=All&aktualitet=All&datastruktur=All&dataskema=All"
     datasets = []
     while next_link:
@@ -20,21 +23,29 @@ def build_datasets(filter=[]):
         pager_next = soup.find('li', {'class': 'pager-next'})
         temp = parse_datasets(res)
         for d in temp:
-            if not any(x in d['name'] for x in filter):
+            if not any(x in d.name for x in name_filter):
                 datasets.append(d)
         if pager_next:
             next_link = pager_next.find('a')['href']
         else:
             next_link = None
 
-    add_download_directory([Dataset(d) for d in datasets])
+    datasets = add_download_directory(username, password, datasets)
     return datasets
 
-def add_download_directory(datasets):
-    dl = DatasetDownloader("Kjartanb", "kjartan1")
+def add_download_directory(username, password, datasets):
+
+    dl = DatasetDownloader(username, password)
     for dataset in datasets:
-        d = dl.order_dataset(dataset, limit=1)
-        
+
+        order_receipt = dl.order_dataset(dataset, limit=1)
+        mydlsres = dl.kapi.get("http://data.kartverket.no/download/mine/downloads")
+        log.html(mydlsres, filename="getdownloadurl")
+
+        link  = html.get_download_url(mydlsres.text, order_receipt.order_id)
+
+        dataset.download_link = link
+    return datasets
 
 def parse_datasets(res):
     soup = BeautifulSoup(res.text, 'html.parser')
@@ -44,17 +55,16 @@ def parse_datasets(res):
         div = view.find('div', {'class': 'views-field-body'})
         if div != -1:
             el = div.find('a')
-            datasets.append({
-                'link' : el['href'],
-                'id' : el['href'].replace("/download/content/", ""),
-                'name' : el.text
-            })
+            datasetid = el['href'].replace("/download/content/", "")
+            name = el.text            
+            datasets.append(Dataset(datasetid, name))
 
     return datasets
 
 def get_select_for_dataset(link):
     url = "http://data.kartverket.no"
     res = requests.get(url + '/' +link)
+    log.html(res)
     line = next(line for line in res.text.split('\n') if
                 line.startswith('jQuery.extend(Drupal.settings'))
     kms_widget = json.loads(
@@ -87,21 +97,25 @@ def save_selection_file(directory, name, geojson):
     with open(directory + '/' + name, 'w') as fp:
         json.dump(geojson, fp)
 
-datasets = build_datasets(filter=[
-    'Illustrasjonskart', 
-    'Raster', 
-    'kommuneinndeling', 
-    'Digital terrengmodell', 
-    'UTM 32', 
-    'UTM 35', 
-    'TEST',
-    'N1000 Kartdata',
-    'N500 Kartdata',
-    'N250 Kartdata',
-    'N5000 Kartdata'
-    ] )
+if __name__ == '__main__':
+
+    username = "username"
+    password = "password"
+
+    datasets = build_datasets(username, password, name_filter=[
+        'Illustrasjonskart', 
+        'Raster', 
+        'kommuneinndeling', 
+        'Digital terrengmodell', 
+        'UTM 32', 
+        'UTM 35', 
+        'TEST',
+        'N1000 Kartdata',
+        'N500 Kartdata',
+        'N250 Kartdata',
+        'N5000 Kartdata'
+        ] )
 
 
-
-with open('config/datasets.yaml', 'w') as fp:
-    yaml.safe_dump(datasets, stream=fp, encoding='utf-8', allow_unicode=True)
+    with open('config/datasets.yaml', 'w') as fp:
+        yaml.safe_dump([d.to_dict() for d in datasets], stream=fp, encoding='utf-8', allow_unicode=True)
