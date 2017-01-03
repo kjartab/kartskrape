@@ -26,7 +26,6 @@ def print_datasets():
     for key, dataset in dsets.items():
         print dataset.id
 
-
 def download_dataset(username, password, datasetname, download_directory):
     dl = DatasetDownloader(username, password)
     dsets = get_datasets()

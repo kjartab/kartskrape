@@ -118,10 +118,10 @@ class KartverketApiHelper(object):
 
         return self.session.post(url, data=payload, headers=headers)
     
-    def download_file(self, url. download_directory):
+    def download_file(self, url, download_directory):
         file_name = url.split('/')[-1]
-        
-        local_filename = download_directory + url.split('/')[-1]
+
+        local_filename = download_directory + "/" + url.split('/')[-1]
         r = self.session.get(url, stream=True)
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024): 
