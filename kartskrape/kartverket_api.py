@@ -108,7 +108,6 @@ class KartverketApiHelper(object):
         return cookie_str
 
     def post(self, url, payload, headers=None):
-
         if not headers:
             headers = {            
                 'Cookie' : self.get_auth_cookie()

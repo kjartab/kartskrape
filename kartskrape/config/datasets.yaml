@@ -67,20 +67,20 @@
 - {download_link: 'http://data.kartverket.no/download/system/files/matrikkeldata/adresser',
   id: offisielle-adresser-utm33-sosi, name: 'Offisielle adresser, UTM33, SOSI ', url: 'http://data.kartverket.no/download/content/offisielle-adresser-utm33-sosi'}
 - {download_link: 'http://data.kartverket.no/download/system/files/sjodata/dybdekurver',
-  id: sj%C3%B8-dybdekurver-utm33-1000m-grid-s57, name: 'Sjø dybdekurver, UTM33, 1000m
-    grid, S57', url: 'http://data.kartverket.no/download/content/sj%C3%B8-dybdekurver-utm33-1000m-grid-s57'}
+  id: sjø-dybdekurver-utm33-1000m-grid-s57, name: 'Sjø dybdekurver, UTM33, 1000m
+    grid, S57', url: 'http://data.kartverket.no/download/content/sjø-dybdekurver-utm33-1000m-grid-s57'}
 - {download_link: 'http://data.kartverket.no/download/system/files/sjodata/dybdekurver',
-  id: sj%C3%B8-dybdekurver-utm33-1000m-grid-sosi, name: 'Sjø dybdekurver, UTM33, 1000m
-    grid, SOSI', url: 'http://data.kartverket.no/download/content/sj%C3%B8-dybdekurver-utm33-1000m-grid-sosi'}
+  id: sjø-dybdekurver-utm33-1000m-grid-sosi, name: 'Sjø dybdekurver, UTM33, 1000m
+    grid, SOSI', url: 'http://data.kartverket.no/download/content/sjø-dybdekurver-utm33-1000m-grid-sosi'}
 - {download_link: 'http://data.kartverket.no/download/system/files/sjodata/dybdekurver',
-  id: sj%C3%B8-dybdekurver-utm33-600m-grid-shape, name: 'Sjø dybdekurver, UTM33, 600m
-    grid, Shape', url: 'http://data.kartverket.no/download/content/sj%C3%B8-dybdekurver-utm33-600m-grid-shape'}
+  id: sjø-dybdekurver-utm33-600m-grid-shape, name: 'Sjø dybdekurver, UTM33, 600m
+    grid, Shape', url: 'http://data.kartverket.no/download/content/sjø-dybdekurver-utm33-600m-grid-shape'}
 - {download_link: 'http://data.kartverket.no/download/system/files/sjodata/terrengdata/25m',
-  id: sj%C3%B8-terrengmodell-25m-utm33, name: 'Sjø terrengmodell 25m, UTM33', url: 'http://data.kartverket.no/download/content/sj%C3%B8-terrengmodell-25m-utm33'}
+  id: sjø-terrengmodell-25m-utm33, name: 'Sjø terrengmodell 25m, UTM33', url: 'http://data.kartverket.no/download/content/sjø-terrengmodell-25m-utm33'}
 - {download_link: 'http://data.kartverket.no/download/system/files/sjodata/terrengdata/50m',
-  id: sj%C3%B8-terrengmodell-50m-utm33, name: 'Sjø terrengmodell 50m, UTM33', url: 'http://data.kartverket.no/download/content/sj%C3%B8-terrengmodell-50m-utm33'}
+  id: sjø-terrengmodell-50m-utm33, name: 'Sjø terrengmodell 50m, UTM33', url: 'http://data.kartverket.no/download/content/sjø-terrengmodell-50m-utm33'}
 - {download_link: 'http://data.kartverket.no/download/system/files/sjodata/terrengdata/5m',
-  id: sj%C3%B8-terrengmodell-5m-utm33, name: 'Sjø terrengmodell 5m, UTM33', url: 'http://data.kartverket.no/download/content/sj%C3%B8-terrengmodell-5m-utm33'}
+  id: sjø-terrengmodell-5m-utm33, name: 'Sjø terrengmodell 5m, UTM33', url: 'http://data.kartverket.no/download/content/sjø-terrengmodell-5m-utm33'}
 - {download_link: 'http://data.kartverket.no/download/system/files/grensedata/landsdekkende',
   id: statistiske-enheter-grunnkretser-utm-33-hele-landet, name: 'Statistiske enheter
     Grunnkretser, UTM 33, hele landet', url: 'http://data.kartverket.no/download/content/statistiske-enheter-grunnkretser-utm-33-hele-landet'}

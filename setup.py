@@ -1,6 +1,4 @@
 import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
 
 from setuptools import setup, find_packages
 
@@ -16,7 +14,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='kartskrape',
 
-    version='1.2.0',
+    version='1.4.0',
 
     description='Kartskrape',
     long_description='long_description',
@@ -25,8 +23,8 @@ setup(
     url='https://github.com/kjartab/kartskrape',
 
     # Author details
-    author='The Python Packaging Authority',
-    author_email='pypa-dev@googlegroups.com',
+    author='Kjartan Bjorset',
+    author_email='kjartanbjorset@gmail.com',
 
     # Choose your license
     license='MIT',
@@ -78,8 +76,8 @@ setup(
     # # installed, specify them here.  If using Python 2.6 or less, then these
     # # have to be included in MANIFEST.in as well.
     package_data={
-        '': ['*.yaml'],
-    },
+        '': ['*.yaml']
+    }
 
     # # Although 'package_data' is the preferred approach, in some case you may
     # # need to place data files outside of your packages. See:

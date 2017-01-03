@@ -11,10 +11,7 @@ kartskrape.egg-info/SOURCES.txt
 kartskrape.egg-info/dependency_links.txt
 kartskrape.egg-info/requires.txt
 kartskrape.egg-info/top_level.txt
-kartskrape/config/__init__.py
 kartskrape/config/datasets.yaml
-kartskrape/config/datasets2.yaml
-kartskrape/config/urls.py
 kartskrape/models/__init__.py
 kartskrape/models/dataset.py
 kartskrape/models/receipt.py

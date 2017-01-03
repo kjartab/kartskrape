@@ -2,3 +2,5 @@ venv/
 data/
 venv*/
 .pypirc
+dist/
+build/

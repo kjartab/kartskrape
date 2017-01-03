@@ -38,8 +38,6 @@ class DatasetDownloader(object):
 
     def order(self, dataset, limit=None):
         res = self.kapi.get(dataset.url)
-
-        
         form_build_id = self.kapi.get_form_build_id(res)
         form_token = self.kapi.get_form_token(res)
         form_id = self.kapi.get_form_id(res)
@@ -100,7 +98,7 @@ class DatasetDownloader(object):
             'form_token' : form_token,
             'form_id' : 'commerce_checkout_form_checkout'
             }
-
+            
         res = self.kapi.post(url, payload)
         return res, order_id
 

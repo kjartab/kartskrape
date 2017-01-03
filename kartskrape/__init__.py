@@ -3,7 +3,6 @@
 
 
 __title__ = 'kartskrape'
-__version__ = '0.0.1'
 
 
 """
@@ -11,7 +10,7 @@ Kartskrape
 
 A library for downloading data from Kartverket
 
-:copyright: (c) 2016 by Kjartan Bjørset.
+:copyright: (c) 2016 by Kjartan Bjorset.
 :license: Apache 2.0, see LICENSE for more details.
 """
 
@@ -21,7 +20,7 @@ from dataset_downloader import DatasetDownloader
 def get_datasets():
     return datasets.load()
 
-def print_datasets():
+def list_datasets():
     dsets = get_datasets()
     for key, dataset in dsets.items():
         print dataset.id
